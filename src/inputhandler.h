@@ -65,6 +65,9 @@ signals:
     void redoRequested();        // Ctrl+Y / Ctrl+Shift+Z
     void fontIncreaseRequested(); // Ctrl++
     void fontDecreaseRequested(); // Ctrl+-
+    void aiTransformRequested(); // Ctrl+T
+    void aiSettingsRequested();  // Ctrl+,
+    void selectionArrowPressed(int direction); // Shift+Arrow (0=up, 1=down, 2=left, 3=right)
 
     // Connection status
     void connectionChanged();

@@ -184,6 +184,81 @@ Easy-to-install application with community support infrastructure.
 
 ---
 
+## Phase 6: AI Integration (Weeks 10-12)
+
+**Goal**: Add AI-powered text transformation capabilities.
+
+### Tasks
+
+- [x] **Architecture Design**
+  - [x] Design AI client abstraction for multiple providers
+  - [x] Design prompt template system
+  - [x] Design configuration storage
+  - [x] Plan Mermaid rendering strategy
+
+- [x] **Core AI Components**
+  - [x] AIConfig - Configuration management
+  - [x] AIClient - Multi-provider API client
+  - [x] AITransform - Transformation coordinator
+  - [x] MermaidRenderer - Diagram rendering
+
+- [x] **Text Selection**
+  - [x] Add selection support to Editor class
+  - [x] Implement Shift+Arrow selection
+  - [x] Selection visualization in QML
+  - [x] Selection state management
+
+- [x] **Prompt Palette UI**
+  - [x] Create PromptPalette.qml component
+  - [x] Built-in transformation templates
+  - [x] Custom prompt input
+  - [x] Keyboard navigation
+
+- [x] **AI Result Handling**
+  - [x] AIResultView.qml for results
+  - [x] Replace vs Insert After options
+  - [x] Mermaid code + image display
+  - [x] Error handling and notifications
+
+- [x] **AI Settings**
+  - [x] AISettings.qml panel
+  - [x] Provider selection (OpenAI, Anthropic, Ollama)
+  - [x] API key configuration
+  - [x] Model selection
+
+- [x] **Mermaid Integration**
+  - [x] Server-side rendering via mermaid.ink
+  - [x] Local caching of rendered diagrams
+  - [x] Text fallback for offline mode
+  - [x] Multiple diagram types support
+
+### Providers Supported
+
+- **OpenAI**: GPT-4, GPT-4o
+- **Anthropic**: Claude Sonnet, Claude Opus
+- **Ollama**: Any locally hosted model
+
+### Built-in Prompts
+
+- Process Flow (Mermaid flowchart)
+- Sequence Diagram
+- Mind Map
+- Summarize
+- Expand
+- Bullet Points
+- Improve Writing
+- Simplify
+- Make Formal
+- Make Casual
+- Extract Actions
+- Generate Questions
+- Custom Prompt
+
+### Deliverable
+Fully functional AI-powered text transformation with multiple providers and diagram support.
+
+---
+
 ## Future Ideas
 
 Features to consider after the initial release:
@@ -198,6 +273,11 @@ Features to consider after the initial release:
 - **Split View**: Edit and preview side by side
 - **Git Integration**: Version control for documents
 - **Plugins**: Extensibility system for community features
+- **Voice Input**: Speech-to-text for hands-free input
+- **AI Chat Mode**: Interactive conversation with AI about your document
+- **AI Autocomplete**: Inline completion suggestions as you type
+- **Template Library**: Document templates with AI fill-in
+- **Multi-language Support**: AI translation and localization
 
 ---
 

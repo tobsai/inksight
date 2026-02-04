@@ -28,6 +28,10 @@ class Editor : public QObject
     Q_PROPERTY(QString currentFile READ currentFile NOTIFY currentFileChanged)
     Q_PROPERTY(bool modified READ isModified NOTIFY modifiedChanged)
     Q_PROPERTY(int fontSize READ fontSize WRITE setFontSize NOTIFY fontSizeChanged)
+    Q_PROPERTY(int selectionStart READ selectionStart WRITE setSelectionStart NOTIFY selectionChanged)
+    Q_PROPERTY(int selectionEnd READ selectionEnd WRITE setSelectionEnd NOTIFY selectionChanged)
+    Q_PROPERTY(bool hasSelection READ hasSelection NOTIFY selectionChanged)
+    Q_PROPERTY(QString selectedText READ selectedText NOTIFY selectionChanged)
 
 public:
     explicit Editor(QObject *parent = nullptr);
@@ -38,11 +42,17 @@ public:
     QString currentFile() const;
     bool isModified() const;
     int fontSize() const;
+    int selectionStart() const;
+    int selectionEnd() const;
+    bool hasSelection() const;
+    QString selectedText() const;
 
     // Property setters
     void setContent(const QString &content);
     void setCursorPosition(int position);
     void setFontSize(int size);
+    void setSelectionStart(int position);
+    void setSelectionEnd(int position);
 
 public slots:
     // Document operations
@@ -75,12 +85,27 @@ public slots:
     void increaseFontSize();
     void decreaseFontSize();
 
+    // Selection
+    void setSelection(int start, int end);
+    void selectAll();
+    void selectWord();
+    void selectLine();
+    void selectParagraph();
+    void clearSelection();
+    void extendSelectionLeft();
+    void extendSelectionRight();
+    void extendSelectionUp();
+    void extendSelectionDown();
+    void extendSelectionToLineStart();
+    void extendSelectionToLineEnd();
+
 signals:
     void contentChanged();
     void cursorPositionChanged();
     void currentFileChanged();
     void modifiedChanged();
     void fontSizeChanged();
+    void selectionChanged();
     void documentSaved();
     void documentLoaded(const QString &fileName);
     void errorOccurred(const QString &message);
@@ -94,6 +119,8 @@ private:
     QString m_currentFile;
     bool m_modified;
     int m_fontSize;
+    int m_selectionStart;
+    int m_selectionEnd;
 
     // Undo/Redo stacks
     QStringList m_undoStack;

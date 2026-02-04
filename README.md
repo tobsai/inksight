@@ -19,6 +19,8 @@ Ghostwriter Pro brings typewriter-style text input to the reMarkable Paper Pro, 
 - 🔄 **Word wrapping** - Automatic text flow
 - ⏪ **Undo/Redo** - Full edit history
 - 🌙 **E-ink optimized** - Minimal refresh, battery efficient
+- 🤖 **AI-powered transformations** - Transform selected text with AI (summarize, expand, create diagrams)
+- 📊 **Mermaid diagram support** - Generate and render flowcharts, sequence diagrams, mind maps
 
 ## Target Platform
 
@@ -91,11 +93,78 @@ See [Developer Setup](#developer-setup) below.
 | `Ctrl+O` | Open document picker |
 | `Ctrl+N` | New document |
 | `Ctrl+K` | Quick switcher |
-| `Escape` | Toggle edit/preview mode |
+| `Escape` | Toggle edit/preview mode / Cancel |
 | `Ctrl++` | Increase font size |
 | `Ctrl+-` | Decrease font size |
 | `Ctrl+Z` | Undo |
 | `Ctrl+Y` | Redo |
+| `Ctrl+A` | Select all text |
+| `Shift+Arrows` | Extend text selection |
+| `Ctrl+T` | AI Transform (with selection) |
+| `Ctrl+,` | AI Settings |
+
+## AI-Powered Text Transformation
+
+Ghostwriter Pro includes an AI-powered text transformation feature that lets you use AI to transform, summarize, expand, or visualize your selected text.
+
+### How It Works
+
+1. **Select text** using `Shift+Arrow` keys
+2. **Press `Ctrl+T`** to open the AI prompt palette
+3. **Choose a transformation** or enter a custom prompt
+4. **Review the result** and choose to replace or insert
+
+### Built-in Transformations
+
+| Transformation | Description |
+|---------------|-------------|
+| 🔄 Process Flow | Convert text to a Mermaid flowchart diagram |
+| 📊 Sequence Diagram | Create a sequence diagram from interactions |
+| 🧠 Mind Map | Generate a mind map from ideas |
+| 📝 Summarize | Create a concise summary |
+| 📖 Expand | Add more detail and examples |
+| • Bullet Points | Convert to organized bullet list |
+| ✨ Improve Writing | Enhance clarity and style |
+| 🎯 Simplify | Make easier to understand |
+| 👔 Make Formal | Convert to professional tone |
+| 😊 Make Casual | Convert to friendly tone |
+| ☑️ Extract Actions | Extract action items and tasks |
+| ❓ Generate Questions | Create discussion questions |
+| 💬 Custom Prompt | Enter your own instructions |
+
+### AI Provider Setup
+
+Ghostwriter Pro supports three AI backends:
+
+#### OpenAI
+1. Get an API key from [platform.openai.com](https://platform.openai.com)
+2. Open AI Settings (`Ctrl+,`)
+3. Select "OpenAI" and enter your API key
+4. Optionally change the model (default: gpt-4o)
+
+#### Anthropic (Claude)
+1. Get an API key from [console.anthropic.com](https://console.anthropic.com)
+2. Open AI Settings (`Ctrl+,`)
+3. Select "Anthropic" and enter your API key
+4. Optionally change the model (default: claude-sonnet-4-20250514)
+
+#### Ollama (Local/Self-hosted)
+1. Install [Ollama](https://ollama.ai) on a server accessible via WiFi
+2. Run a model: `ollama run llama3.2`
+3. Open AI Settings (`Ctrl+,`)
+4. Select "Ollama" and configure:
+   - Server URL (e.g., `http://192.168.1.100:11434`)
+   - Model name (e.g., `llama3.2`)
+
+### Mermaid Diagrams
+
+When you use diagram transformations (Process Flow, Sequence Diagram, Mind Map), Ghostwriter Pro:
+1. Sends your text to the AI to generate Mermaid code
+2. Renders the diagram using [mermaid.ink](https://mermaid.ink) (requires WiFi)
+3. Displays the rendered diagram on the e-ink screen
+4. Inserts both the image reference and Mermaid code into your document
+
+**Offline Mode:** If WiFi is unavailable, diagrams are converted to a text representation.
 
 ## Architecture
 

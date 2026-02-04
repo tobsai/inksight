@@ -29,6 +29,11 @@ ApplicationWindow {
     // File picker state
     property bool filePickerVisible: false
 
+    // AI feature states
+    property bool promptPaletteVisible: false
+    property bool aiResultVisible: false
+    property bool aiSettingsVisible: false
+
     // Connect to input handler signals
     Connections {
         target: inputHandler
@@ -117,6 +122,70 @@ ApplicationWindow {
         function onFontDecreaseRequested() {
             editor.decreaseFontSize()
         }
+
+        // AI Transform shortcut
+        function onAiTransformRequested() {
+            if (editor.hasSelection) {
+                aiTransform.setSelection(editor.selectionStart, editor.selectionEnd)
+                promptPaletteVisible = true
+            } else {
+                notification.show("Select text first (Shift+arrows)")
+            }
+        }
+
+        function onAiSettingsRequested() {
+            aiSettingsVisible = true
+        }
+
+        // Selection with Shift+arrows
+        function onSelectionArrowPressed(direction) {
+            if (mode === "edit") {
+                switch (direction) {
+                    case 0: editor.extendSelectionUp(); break
+                    case 1: editor.extendSelectionDown(); break
+                    case 2: editor.extendSelectionLeft(); break
+                    case 3: editor.extendSelectionRight(); break
+                }
+            }
+        }
+    }
+
+    // AI Transform signal connections
+    Connections {
+        target: aiTransform
+
+        function onShowPromptPalette() {
+            promptPaletteVisible = true
+        }
+
+        function onHidePromptPalette() {
+            promptPaletteVisible = false
+        }
+
+        function onShowResult(result, isMermaid, imagePath) {
+            aiResultView.resultText = result
+            aiResultView.isMermaid = isMermaid
+            aiResultView.mermaidImagePath = imagePath
+            aiResultVisible = true
+        }
+
+        function onShowSettings() {
+            aiSettingsVisible = true
+        }
+
+        function onShowError(error) {
+            notification.show("AI Error: " + error)
+        }
+
+        function onTransformComplete() {
+            // Result is now shown
+        }
+
+        function onStatusMessageChanged() {
+            if (aiTransform.statusMessage) {
+                notification.show(aiTransform.statusMessage)
+            }
+        }
     }
 
     // Main editor view
@@ -167,6 +236,93 @@ ApplicationWindow {
         }
     }
 
+    // AI Prompt Palette overlay
+    PromptPalette {
+        id: promptPalette
+        anchors.centerIn: parent
+        visible: promptPaletteVisible
+        selectedText: editor.selectedText
+        templates: aiTransform.promptTemplates
+
+        onPromptSelected: function(templateId, customPrompt) {
+            promptPaletteVisible = false
+            aiTransform.transform(templateId, customPrompt)
+        }
+
+        onCancelled: {
+            promptPaletteVisible = false
+        }
+    }
+
+    // AI Result View overlay
+    AIResultView {
+        id: aiResultView
+        anchors.fill: parent
+        visible: aiResultVisible
+
+        onReplaceClicked: {
+            aiTransform.replaceSelection()
+            aiResultVisible = false
+        }
+
+        onInsertAfterClicked: {
+            aiTransform.insertAfterSelection()
+            aiResultVisible = false
+        }
+
+        onDiscardClicked: {
+            aiTransform.discardResult()
+            aiResultVisible = false
+        }
+    }
+
+    // AI Settings overlay
+    AISettings {
+        id: aiSettings
+        anchors.fill: parent
+        visible: aiSettingsVisible
+
+        onClosed: {
+            aiSettingsVisible = false
+        }
+    }
+
+    // AI loading indicator
+    Rectangle {
+        id: aiLoadingIndicator
+        anchors.centerIn: parent
+        width: 200
+        height: 100
+        radius: 8
+        color: "#ffffff"
+        border.color: "#333333"
+        border.width: 2
+        visible: aiTransform.busy && !aiResultVisible
+
+        Column {
+            anchors.centerIn: parent
+            spacing: 12
+
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: "🤖"
+                font.pixelSize: 32
+            }
+
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: aiTransform.statusMessage || "Processing..."
+                font.pixelSize: 14
+                color: "#333333"
+            }
+        }
+
+        MouseArea {
+            anchors.fill: parent
+            onClicked: aiTransform.cancel()
+        }
+    }
+
     // Status bar at bottom
     Rectangle {
         id: statusBar
@@ -201,6 +357,28 @@ ApplicationWindow {
             anchors.rightMargin: 20
             anchors.verticalCenter: parent.verticalCenter
             spacing: 20
+
+            // Selection indicator
+            Text {
+                text: editor.hasSelection ? "SEL: " + (editor.selectionEnd - editor.selectionStart) : ""
+                font.pixelSize: 12
+                color: "#666666"
+                visible: editor.hasSelection
+            }
+
+            // AI indicator
+            Text {
+                text: "🤖"
+                font.pixelSize: 14
+                color: aiConfig.isConfigured ? "#333333" : "#cccccc"
+                visible: true
+
+                MouseArea {
+                    anchors.fill: parent
+                    anchors.margins: -10
+                    onClicked: aiSettingsVisible = true
+                }
+            }
 
             Text {
                 text: mode === "edit" ? "EDIT" : "VIEW"
@@ -283,20 +461,56 @@ ApplicationWindow {
                     case Qt.Key_K: inputHandler.quickSwitchRequested(); event.accepted = true; break
                     case Qt.Key_Z: inputHandler.undoRequested(); event.accepted = true; break
                     case Qt.Key_Y: inputHandler.redoRequested(); event.accepted = true; break
+                    case Qt.Key_T: inputHandler.aiTransformRequested(); event.accepted = true; break  // AI Transform
+                    case Qt.Key_Comma: inputHandler.aiSettingsRequested(); event.accepted = true; break // AI Settings
+                    case Qt.Key_A: editor.selectAll(); event.accepted = true; break  // Select all
+                }
+            } else if (event.modifiers & Qt.ShiftModifier) {
+                // Selection with Shift+arrows
+                switch (event.key) {
+                    case Qt.Key_Up: inputHandler.selectionArrowPressed(0); event.accepted = true; break
+                    case Qt.Key_Down: inputHandler.selectionArrowPressed(1); event.accepted = true; break
+                    case Qt.Key_Left: inputHandler.selectionArrowPressed(2); event.accepted = true; break
+                    case Qt.Key_Right: inputHandler.selectionArrowPressed(3); event.accepted = true; break
+                    case Qt.Key_Home: editor.extendSelectionToLineStart(); event.accepted = true; break
+                    case Qt.Key_End: editor.extendSelectionToLineEnd(); event.accepted = true; break
                 }
             } else {
                 switch (event.key) {
-                    case Qt.Key_Escape: inputHandler.escapePressed(); event.accepted = true; break
+                    case Qt.Key_Escape:
+                        if (promptPaletteVisible) {
+                            promptPaletteVisible = false
+                        } else if (aiResultVisible) {
+                            aiTransform.discardResult()
+                            aiResultVisible = false
+                        } else if (aiSettingsVisible) {
+                            aiSettingsVisible = false
+                        } else if (editor.hasSelection) {
+                            editor.clearSelection()
+                        } else {
+                            inputHandler.escapePressed()
+                        }
+                        event.accepted = true
+                        break
                     case Qt.Key_Backspace: inputHandler.backspacePressed(); event.accepted = true; break
                     case Qt.Key_Delete: inputHandler.deletePressed(); event.accepted = true; break
                     case Qt.Key_Return:
                     case Qt.Key_Enter: inputHandler.enterPressed(); event.accepted = true; break
-                    case Qt.Key_Up: inputHandler.arrowPressed(0); event.accepted = true; break
-                    case Qt.Key_Down: inputHandler.arrowPressed(1); event.accepted = true; break
-                    case Qt.Key_Left: inputHandler.arrowPressed(2); event.accepted = true; break
-                    case Qt.Key_Right: inputHandler.arrowPressed(3); event.accepted = true; break
+                    case Qt.Key_Up: editor.clearSelection(); inputHandler.arrowPressed(0); event.accepted = true; break
+                    case Qt.Key_Down: editor.clearSelection(); inputHandler.arrowPressed(1); event.accepted = true; break
+                    case Qt.Key_Left: editor.clearSelection(); inputHandler.arrowPressed(2); event.accepted = true; break
+                    case Qt.Key_Right: editor.clearSelection(); inputHandler.arrowPressed(3); event.accepted = true; break
                     default:
                         if (event.text && mode === "edit") {
+                            // If there's a selection, delete it first
+                            if (editor.hasSelection) {
+                                var content = editor.content
+                                var before = content.substring(0, editor.selectionStart)
+                                var after = content.substring(editor.selectionEnd)
+                                editor.setContent(before + after)
+                                editor.setCursorPosition(editor.selectionStart)
+                                editor.clearSelection()
+                            }
                             editorComponent.insertText(event.text)
                             event.accepted = true
                         }

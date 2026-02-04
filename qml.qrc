@@ -5,5 +5,8 @@
         <file>qml/FilePicker.qml</file>
         <file>qml/QuickSwitcher.qml</file>
         <file>qml/Settings.qml</file>
+        <file>qml/PromptPalette.qml</file>
+        <file>qml/AIResultView.qml</file>
+        <file>qml/AISettings.qml</file>
     </qresource>
 </RCC>

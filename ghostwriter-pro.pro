@@ -1,4 +1,4 @@
-QT += quick quickcontrols2
+QT += quick quickcontrols2 network
 
 CONFIG += c++17
 
@@ -15,12 +15,20 @@ SOURCES += \
     src/main.cpp \
     src/editor.cpp \
     src/filemanager.cpp \
-    src/inputhandler.cpp
+    src/inputhandler.cpp \
+    src/aiconfig.cpp \
+    src/aiclient.cpp \
+    src/aitransform.cpp \
+    src/mermaidrenderer.cpp
 
 HEADERS += \
     src/editor.h \
     src/filemanager.h \
-    src/inputhandler.h
+    src/inputhandler.h \
+    src/aiconfig.h \
+    src/aiclient.h \
+    src/aitransform.h \
+    src/mermaidrenderer.h
 
 # QML files
 RESOURCES += qml.qrc

@@ -18,6 +18,8 @@ Editor::Editor(QObject *parent)
     , m_cursorPosition(0)
     , m_modified(false)
     , m_fontSize(DEFAULT_FONT_SIZE)
+    , m_selectionStart(-1)
+    , m_selectionEnd(-1)
 {
 }
 
@@ -338,4 +340,247 @@ void Editor::markModified()
         m_modified = true;
         emit modifiedChanged();
     }
+}
+
+// Selection implementation
+
+int Editor::selectionStart() const
+{
+    return m_selectionStart;
+}
+
+int Editor::selectionEnd() const
+{
+    return m_selectionEnd;
+}
+
+bool Editor::hasSelection() const
+{
+    return m_selectionStart >= 0 && m_selectionEnd > m_selectionStart;
+}
+
+QString Editor::selectedText() const
+{
+    if (!hasSelection()) return QString();
+    return m_content.mid(m_selectionStart, m_selectionEnd - m_selectionStart);
+}
+
+void Editor::setSelectionStart(int position)
+{
+    position = qBound(0, position, m_content.length());
+    if (m_selectionStart != position) {
+        m_selectionStart = position;
+        emit selectionChanged();
+    }
+}
+
+void Editor::setSelectionEnd(int position)
+{
+    position = qBound(0, position, m_content.length());
+    if (m_selectionEnd != position) {
+        m_selectionEnd = position;
+        emit selectionChanged();
+    }
+}
+
+void Editor::setSelection(int start, int end)
+{
+    start = qBound(0, start, m_content.length());
+    end = qBound(0, end, m_content.length());
+    
+    if (start > end) {
+        qSwap(start, end);
+    }
+    
+    bool changed = (m_selectionStart != start || m_selectionEnd != end);
+    m_selectionStart = start;
+    m_selectionEnd = end;
+    
+    if (changed) {
+        emit selectionChanged();
+    }
+}
+
+void Editor::clearSelection()
+{
+    if (m_selectionStart >= 0 || m_selectionEnd >= 0) {
+        m_selectionStart = -1;
+        m_selectionEnd = -1;
+        emit selectionChanged();
+    }
+}
+
+void Editor::selectAll()
+{
+    setSelection(0, m_content.length());
+}
+
+void Editor::selectWord()
+{
+    if (m_content.isEmpty()) return;
+    
+    // Find word boundaries at cursor position
+    int start = m_cursorPosition;
+    int end = m_cursorPosition;
+    
+    // Move start backwards to word beginning
+    while (start > 0 && !m_content[start - 1].isSpace()) {
+        start--;
+    }
+    
+    // Move end forwards to word end
+    while (end < m_content.length() && !m_content[end].isSpace()) {
+        end++;
+    }
+    
+    if (start != end) {
+        setSelection(start, end);
+    }
+}
+
+void Editor::selectLine()
+{
+    if (m_content.isEmpty()) return;
+    
+    // Find line start
+    int start = m_content.lastIndexOf('\n', m_cursorPosition - 1) + 1;
+    
+    // Find line end
+    int end = m_content.indexOf('\n', m_cursorPosition);
+    if (end == -1) end = m_content.length();
+    
+    setSelection(start, end);
+}
+
+void Editor::selectParagraph()
+{
+    if (m_content.isEmpty()) return;
+    
+    // Find paragraph start (double newline or start of content)
+    int start = m_cursorPosition;
+    while (start > 0) {
+        if (start >= 2 && m_content[start - 1] == '\n' && m_content[start - 2] == '\n') {
+            break;
+        }
+        start--;
+    }
+    
+    // Find paragraph end (double newline or end of content)
+    int end = m_cursorPosition;
+    while (end < m_content.length()) {
+        if (end < m_content.length() - 1 && m_content[end] == '\n' && m_content[end + 1] == '\n') {
+            break;
+        }
+        end++;
+    }
+    
+    setSelection(start, end);
+}
+
+void Editor::extendSelectionLeft()
+{
+    if (!hasSelection()) {
+        // Start selection from cursor
+        m_selectionEnd = m_cursorPosition;
+        m_selectionStart = qMax(0, m_cursorPosition - 1);
+    } else {
+        // Extend selection left
+        m_selectionStart = qMax(0, m_selectionStart - 1);
+    }
+    m_cursorPosition = m_selectionStart;
+    emit selectionChanged();
+    emit cursorPositionChanged();
+}
+
+void Editor::extendSelectionRight()
+{
+    if (!hasSelection()) {
+        // Start selection from cursor
+        m_selectionStart = m_cursorPosition;
+        m_selectionEnd = qMin(m_content.length(), m_cursorPosition + 1);
+    } else {
+        // Extend selection right
+        m_selectionEnd = qMin(m_content.length(), m_selectionEnd + 1);
+    }
+    m_cursorPosition = m_selectionEnd;
+    emit selectionChanged();
+    emit cursorPositionChanged();
+}
+
+void Editor::extendSelectionUp()
+{
+    // Find current line info
+    int lineStart = m_content.lastIndexOf('\n', m_cursorPosition - 1) + 1;
+    if (lineStart <= 0) return;
+    
+    int prevLineStart = m_content.lastIndexOf('\n', lineStart - 2) + 1;
+    int column = m_cursorPosition - lineStart;
+    int prevLineLength = lineStart - 1 - prevLineStart;
+    int targetPos = prevLineStart + qMin(column, prevLineLength);
+    
+    if (!hasSelection()) {
+        m_selectionEnd = m_cursorPosition;
+        m_selectionStart = targetPos;
+    } else {
+        m_selectionStart = targetPos;
+    }
+    m_cursorPosition = targetPos;
+    emit selectionChanged();
+    emit cursorPositionChanged();
+}
+
+void Editor::extendSelectionDown()
+{
+    // Find next line
+    int nextLineStart = m_content.indexOf('\n', m_cursorPosition);
+    if (nextLineStart == -1) return;
+    nextLineStart++;
+    
+    int lineStart = m_content.lastIndexOf('\n', m_cursorPosition - 1) + 1;
+    int column = m_cursorPosition - lineStart;
+    int nextLineEnd = m_content.indexOf('\n', nextLineStart);
+    if (nextLineEnd == -1) nextLineEnd = m_content.length();
+    int nextLineLength = nextLineEnd - nextLineStart;
+    int targetPos = nextLineStart + qMin(column, nextLineLength);
+    
+    if (!hasSelection()) {
+        m_selectionStart = m_cursorPosition;
+        m_selectionEnd = targetPos;
+    } else {
+        m_selectionEnd = targetPos;
+    }
+    m_cursorPosition = targetPos;
+    emit selectionChanged();
+    emit cursorPositionChanged();
+}
+
+void Editor::extendSelectionToLineStart()
+{
+    int lineStart = m_content.lastIndexOf('\n', m_cursorPosition - 1) + 1;
+    
+    if (!hasSelection()) {
+        m_selectionEnd = m_cursorPosition;
+        m_selectionStart = lineStart;
+    } else {
+        m_selectionStart = lineStart;
+    }
+    m_cursorPosition = lineStart;
+    emit selectionChanged();
+    emit cursorPositionChanged();
+}
+
+void Editor::extendSelectionToLineEnd()
+{
+    int lineEnd = m_content.indexOf('\n', m_cursorPosition);
+    if (lineEnd == -1) lineEnd = m_content.length();
+    
+    if (!hasSelection()) {
+        m_selectionStart = m_cursorPosition;
+        m_selectionEnd = lineEnd;
+    } else {
+        m_selectionEnd = lineEnd;
+    }
+    m_cursorPosition = lineEnd;
+    emit selectionChanged();
+    emit cursorPositionChanged();
 }

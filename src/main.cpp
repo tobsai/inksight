@@ -16,6 +16,10 @@
 #include "editor.h"
 #include "filemanager.h"
 #include "inputhandler.h"
+#include "aiconfig.h"
+#include "aiclient.h"
+#include "aitransform.h"
+#include "mermaidrenderer.h"
 
 int main(int argc, char *argv[])
 {
@@ -34,6 +38,7 @@ int main(int argc, char *argv[])
     Editor editor;
     FileManager fileManager;
     InputHandler inputHandler;
+    AITransform aiTransform;
 
     // Set up default document directory
 #ifdef REMARKABLE_PAPERPRO
@@ -48,6 +53,10 @@ int main(int argc, char *argv[])
     }
     fileManager.setDocumentDirectory(documentDir);
 
+    // Set up AI components
+    aiTransform.setEditor(&editor);
+    aiTransform.setConfigDirectory(documentDir);
+
     // Set up QML engine
     QQmlApplicationEngine engine;
 
@@ -56,6 +65,8 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("fileManager", &fileManager);
     engine.rootContext()->setContextProperty("inputHandler", &inputHandler);
     engine.rootContext()->setContextProperty("documentDir", documentDir);
+    engine.rootContext()->setContextProperty("aiTransform", &aiTransform);
+    engine.rootContext()->setContextProperty("aiConfig", aiTransform.config());
 
     // Load main QML file
     const QUrl url(QStringLiteral("qrc:/qml/main.qml"));

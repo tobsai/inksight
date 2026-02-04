@@ -32,8 +32,8 @@ Item {
         contentHeight: Math.max(textDisplay.height + 100, height)
         clip: true
 
-        // Edit mode: show text with cursor
-        Text {
+        // Edit mode: show text with cursor and selection
+        TextEdit {
             id: textDisplay
             width: parent.width
             wrapMode: Text.WordWrap
@@ -41,18 +41,77 @@ Item {
             font.pixelSize: editor.fontSize
             color: "#000000"
             lineHeight: 1.5
+            readOnly: true  // We handle editing via our own input system
+            selectionColor: "#c0c0c0"  // Light gray for e-ink visibility
+            selectedTextColor: "#000000"
+            textFormat: TextEdit.PlainText
 
-            // Display content with cursor in edit mode
-            text: {
-                if (editMode) {
-                    var content = editor.content
-                    var pos = editor.cursorPosition
-                    var before = content.substring(0, pos)
-                    var after = content.substring(pos)
-                    return before + "│" + after
+            // Sync with editor content
+            text: editor.content
+
+            // Sync cursor position
+            cursorPosition: editor.cursorPosition
+
+            // Sync selection
+            Component.onCompleted: updateSelection()
+
+            function updateSelection() {
+                if (editor.hasSelection) {
+                    select(editor.selectionStart, editor.selectionEnd)
                 } else {
-                    return editor.content
+                    deselect()
                 }
+            }
+
+            Connections {
+                target: editor
+                function onSelectionChanged() {
+                    textDisplay.updateSelection()
+                }
+                function onCursorPositionChanged() {
+                    textDisplay.cursorPosition = editor.cursorPosition
+                }
+                function onContentChanged() {
+                    textDisplay.text = editor.content
+                }
+            }
+
+            // Show cursor in edit mode
+            cursorVisible: editMode
+        }
+
+        // Cursor overlay for better visibility
+        Rectangle {
+            id: cursorOverlay
+            width: 2
+            height: editor.fontSize * 1.2
+            color: "#000000"
+            visible: editMode && !editor.hasSelection
+            opacity: cursorBlink.running ? (cursorBlinkState ? 1 : 0) : 1
+
+            property bool cursorBlinkState: true
+
+            Timer {
+                id: cursorBlink
+                interval: 500
+                running: editMode && root.visible && !editor.hasSelection
+                repeat: true
+                onTriggered: cursorOverlay.cursorBlinkState = !cursorOverlay.cursorBlinkState
+            }
+
+            // Position the cursor overlay
+            // This is approximate - for production you'd calculate from text metrics
+            x: {
+                // Simple estimate based on character position
+                var lineStart = editor.content.lastIndexOf('\n', editor.cursorPosition - 1) + 1
+                var col = editor.cursorPosition - lineStart
+                return col * editor.fontSize * 0.6  // Approximate character width
+            }
+            y: {
+                // Count newlines before cursor
+                var text = editor.content.substring(0, editor.cursorPosition)
+                var lines = text.split('\n').length - 1
+                return lines * editor.fontSize * 1.5
             }
         }
 
