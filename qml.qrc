@@ -1,0 +1,9 @@
+<RCC>
+    <qresource prefix="/">
+        <file>qml/main.qml</file>
+        <file>qml/Editor.qml</file>
+        <file>qml/FilePicker.qml</file>
+        <file>qml/QuickSwitcher.qml</file>
+        <file>qml/Settings.qml</file>
+    </qresource>
+</RCC>

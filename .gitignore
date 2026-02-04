@@ -1,0 +1,42 @@
+# Build outputs
+build/
+*.o
+*.moc
+moc_*.cpp
+qrc_*.cpp
+Makefile
+ghostwriter-pro
+
+# Qt Creator
+*.pro.user
+*.pro.user.*
+*.autosave
+.qmake.stash
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# SDK and toolchain
+sdk/
+toolchain/
+*.sh
+
+# Temporary files
+*.tmp
+*.bak
+*.log
+
+# Test outputs
+test_output/
+
+# Local development
+.local/
+.env
