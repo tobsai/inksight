@@ -3,7 +3,7 @@ QT += quick quickcontrols2 network
 CONFIG += c++17
 
 # Application name
-TARGET = ghostwriter-pro
+TARGET = inksight
 TEMPLATE = app
 
 # Version info
@@ -13,22 +13,16 @@ DEFINES += APP_VERSION=\\\"$$VERSION\\\"
 # Source files
 SOURCES += \
     src/main.cpp \
-    src/editor.cpp \
-    src/filemanager.cpp \
-    src/inputhandler.cpp \
-    src/aiconfig.cpp \
-    src/aiclient.cpp \
-    src/aitransform.cpp \
-    src/mermaidrenderer.cpp
+    src/inkcapture.cpp \
+    src/aiengine.cpp \
+    src/transform.cpp \
+    src/renderer.cpp
 
 HEADERS += \
-    src/editor.h \
-    src/filemanager.h \
-    src/inputhandler.h \
-    src/aiconfig.h \
-    src/aiclient.h \
-    src/aitransform.h \
-    src/mermaidrenderer.h
+    src/inkcapture.h \
+    src/aiengine.h \
+    src/transform.h \
+    src/renderer.h
 
 # QML files
 RESOURCES += qml.qrc
