@@ -1,239 +1,336 @@
-# InkSight Roadmap
+# InkSight Development Roadmap
 
-Development plan for InkSight — AI-powered ink transformation for reMarkable Paper Pro.
-
-## Current Status: 🚧 Pre-Alpha
-
-Core architecture is being designed. Research phase complete.
-
----
+## Project Status: Phase 0 - Scaffolding Complete ✅
 
 ## Phase 1: Foundation (Weeks 1-2)
 
-**Goal**: Capture ink from the Paper Pro screen and display it back.
+### Milestone 1.1: reMarkable Cloud API Integration
+- [ ] Implement authentication flow (device registration)
+- [ ] Service discovery client
+- [ ] Document list and download
+- [ ] Upload capabilities
+- [ ] Token management and refresh
+- [ ] Error handling and retry logic
 
-### Tasks
+**Deliverable**: Working cloud client that can list, download, and upload documents
 
-- [ ] **Project Setup**
-  - [x] Create repository structure
-  - [x] Document research findings
-  - [ ] Set up development environment with Chiappa SDK
-  - [ ] Create Qt Quick project skeleton
-  - [ ] Test deployment to device
+### Milestone 1.2: Binary Format Parser
+- [ ] Parse .metadata JSON files
+- [ ] Parse .content JSON files
+- [ ] Decode binary .rm format (v6)
+- [ ] Extract stroke data (layers, lines, points)
+- [ ] Support for all pen types and colors
+- [ ] Unit tests with sample files
 
-- [ ] **Ink Capture**
-  - [ ] Read pen strokes from Wacom digitizer via evdev
-  - [ ] Capture page as image (screenshot of e-ink framebuffer)
-  - [ ] Store stroke data in memory for processing
-  - [ ] Handle different pen types (fine, thick, highlighter, eraser)
+**Deliverable**: Robust parser that can decode all reMarkable file types
 
-- [ ] **Basic Display**
-  - [ ] Create full-screen QML canvas
-  - [ ] Render captured strokes back to screen
-  - [ ] Test e-ink refresh behavior
-  - [ ] Implement partial screen updates
+### Milestone 1.3: Development Environment
+- [ ] Logging system with levels
+- [ ] Configuration management
+- [ ] Test fixtures (sample .rm files)
+- [ ] CI/CD pipeline setup
+- [ ] Documentation site
 
-- [ ] **Device Integration**
-  - [ ] Detect Paper Pro hardware
-  - [ ] Access Xochitl notebook data (if applicable)
-  - [ ] Handle screen resolution and DPI
-  - [ ] Basic touch gesture handling
+**Deliverable**: Professional dev environment with testing infrastructure
 
-### Deliverable
-An application that captures what you write/draw and can replay it.
+## Phase 2: Device Integration (Weeks 3-4)
 
----
+### Milestone 2.1: SSH Access Layer
+- [ ] SSH connection manager
+- [ ] File system browser
+- [ ] Document downloader via SSH
+- [ ] Connection pooling
+- [ ] Auto-reconnect on disconnect
 
-## Phase 2: AI Integration (Weeks 3-5)
+**Deliverable**: Reliable SSH client for device access
 
-**Goal**: Send captured ink to AI and display transformation results.
+### Milestone 2.2: File Monitoring
+- [ ] Real-time file change detection
+- [ ] Incremental sync
+- [ ] Conflict resolution
+- [ ] Change event streaming
 
-### Tasks
+**Deliverable**: System that detects new/modified documents in real-time
 
-- [ ] **Page-to-Image Pipeline**
-  - [ ] Capture current page as PNG/JPEG
-  - [ ] Optimize image size for API upload (compression, cropping)
-  - [ ] Handle multi-page captures
-  - [ ] Region selection (transform part of a page)
+### Milestone 2.3: Hybrid Mode
+- [ ] Fallback: Try SSH, then Cloud
+- [ ] Preference system
+- [ ] Offline mode detection
+- [ ] Smart sync strategy
 
-- [ ] **AI Provider Client**
-  - [ ] OpenAI Vision API integration (GPT-4o)
-  - [ ] Anthropic Vision API integration (Claude)
-  - [ ] Ollama local model support
-  - [ ] Provider abstraction layer
-  - [ ] API key secure storage
+**Deliverable**: Seamless switching between access methods
 
-- [ ] **Transformation Engine**
-  - [ ] Prompt template system for each transformation type
-  - [ ] Handwriting-to-text (OCR via vision AI)
-  - [ ] Sketch-to-diagram (Mermaid code generation)
-  - [ ] Notes-to-summary
-  - [ ] Custom prompt input
-  - [ ] Result parsing and formatting
+## Phase 3: AI Integration (Weeks 5-6)
 
-- [ ] **Result Display**
-  - [ ] Text result rendering on e-ink
-  - [ ] Mermaid diagram rendering (via mermaid.ink or local)
-  - [ ] Image result display
-  - [ ] Accept/reject/iterate workflow
-  - [ ] Side-by-side comparison (original ink vs. result)
+### Milestone 3.1: AI Provider Abstraction
+- [ ] Base provider interface
+- [ ] OpenAI integration (GPT-4 Vision)
+- [ ] Anthropic integration (Claude)
+- [ ] Provider selection logic
+- [ ] Cost tracking per provider
 
-### Deliverable
-Write something on the page, trigger a transform, see AI-generated results.
+**Deliverable**: Multi-provider AI system
 
----
+### Milestone 3.2: Image Rendering
+- [ ] Stroke-to-image renderer
+- [ ] Canvas implementation
+- [ ] Resolution optimization
+- [ ] Color and layer support
+- [ ] Caching rendered pages
 
-## Phase 3: Transformation Palette (Weeks 6-7)
+**Deliverable**: High-quality rendering of handwriting to images
 
-**Goal**: Polish the transformation UX with a rich palette of options.
+### Milestone 3.3: Basic Text Recognition
+- [ ] Send rendered pages to Vision AI
+- [ ] Parse OCR responses
+- [ ] Confidence scoring
+- [ ] Word bounding boxes
+- [ ] Multi-language support
 
-### Tasks
+**Deliverable**: Working text recognition for handwritten notes
 
-- [ ] **Palette UI**
-  - [ ] Grid/list of available transformations
-  - [ ] Icons and descriptions for each
-  - [ ] Quick access via gesture or button
-  - [ ] Custom prompt input field
-  - [ ] Recent/favorite transforms
+## Phase 4: Core Transformers (Weeks 7-9)
 
-- [ ] **Built-in Transforms**
-  - [ ] 📝 Transcribe (handwriting → text)
-  - [ ] 🔄 Process Flow (sketch → flowchart)
-  - [ ] 📊 Sequence Diagram
-  - [ ] 🧠 Mind Map
-  - [ ] 📋 Summarize
-  - [ ] 📖 Expand
-  - [ ] ✏️ Clean Up (refine drawings)
-  - [ ] 🌐 Translate
-  - [ ] • Bullet Points
-  - [ ] ☑️ Extract Actions
-  - [ ] ❓ Generate Questions
+### Milestone 4.1: Text Recognition Transformer
+- [ ] Full-page text extraction
+- [ ] Paragraph detection
+- [ ] List recognition
+- [ ] Markdown output
+- [ ] Export to .txt, .md, .docx
 
-- [ ] **Region Selection**
-  - [ ] Lasso tool to select ink region
-  - [ ] Touch-based rectangular selection
-  - [ ] Transform selected region only
-  - [ ] Full-page transform option
+**Deliverable**: Production-ready text recognition
 
-- [ ] **History & Undo**
-  - [ ] Transformation history log
-  - [ ] Undo last transformation
-  - [ ] Compare before/after
-  - [ ] Re-run with different prompt
+### Milestone 4.2: Diagram Cleanup Transformer
+- [ ] Shape detection (boxes, circles, arrows)
+- [ ] Line straightening
+- [ ] Grid snapping
+- [ ] SVG export
+- [ ] Mermaid diagram generation (experimental)
 
-### Deliverable
-Intuitive palette-driven transformation workflow with region selection.
+**Deliverable**: Automatic diagram cleanup and vectorization
 
----
+### Milestone 4.3: Summarization Transformer
+- [ ] Multi-page text aggregation
+- [ ] Key point extraction
+- [ ] Hierarchical summarization
+- [ ] Bullet point generation
+- [ ] Executive summary mode
 
-## Phase 4: Output & Export (Weeks 8-9)
+**Deliverable**: AI-powered note summarization
 
-**Goal**: Make transformation results useful beyond the device.
+### Milestone 4.4: Metadata Extraction
+- [ ] Date recognition
+- [ ] Name/entity extraction
+- [ ] Action item detection
+- [ ] Tag suggestion
+- [ ] Auto-categorization
 
-### Tasks
+**Deliverable**: Smart metadata for notes
 
-- [ ] **Output Formats**
-  - [ ] Save text results as .txt / .md files
-  - [ ] Save diagrams as .svg / .png
-  - [ ] Export to PDF
-  - [ ] Combine into notebook-style documents
+## Phase 5: Storage & Search (Weeks 10-11)
 
-- [ ] **Integration**
-  - [ ] Save results back into reMarkable notebooks (if possible)
-  - [ ] WiFi transfer to computer
-  - [ ] Optional cloud sync endpoint
-  - [ ] Clipboard-style sharing
+### Milestone 5.1: Local Database
+- [ ] SQLite schema design
+- [ ] Document metadata storage
+- [ ] Processing results cache
+- [ ] Settings persistence
+- [ ] Migration system
 
-- [ ] **Batch Processing**
-  - [ ] Transform entire notebooks
-  - [ ] Queue multiple pages for transformation
-  - [ ] Background processing with progress indicator
+**Deliverable**: Robust local storage
 
-### Deliverable
-Transformed content is exportable and integrable with other tools.
+### Milestone 5.2: Search Index
+- [ ] Full-text search index
+- [ ] Vector embeddings for semantic search
+- [ ] Tag-based filtering
+- [ ] Date range queries
+- [ ] Fuzzy matching
 
----
+**Deliverable**: Fast searchable note archive
 
-## Phase 5: Polish & UX (Weeks 10-11)
+### Milestone 5.3: Cache Management
+- [ ] LRU cache for documents
+- [ ] AI result caching
+- [ ] Cache invalidation logic
+- [ ] Storage quota management
+- [ ] Garbage collection
 
-**Goal**: Make it feel native and reliable.
+**Deliverable**: Efficient caching system
 
-### Tasks
+## Phase 6: CLI & User Experience (Weeks 12-13)
 
-- [ ] **E-ink Optimization**
-  - [ ] Minimize screen flicker during transforms
-  - [ ] Progressive result rendering
-  - [ ] Smart refresh strategies
-  - [ ] Battery efficiency
+### Milestone 6.1: Command-Line Interface
+- [ ] Interactive setup wizard
+- [ ] Document operations (list, get, transform)
+- [ ] Batch processing
+- [ ] Progress indicators
+- [ ] Helpful error messages
 
-- [ ] **Gesture & Touch**
-  - [ ] Natural gesture triggers (e.g., draw a circle → transform contents)
-  - [ ] Swipe to dismiss results
-  - [ ] Pinch to zoom results
-  - [ ] Long-press for context menu
+**Deliverable**: User-friendly CLI tool
 
-- [ ] **Settings & Configuration**
-  - [ ] Provider selection UI
-  - [ ] API key management
-  - [ ] Default transformation preferences
-  - [ ] Network/WiFi status indicator
+### Milestone 6.2: Configuration
+- [ ] Config file support
+- [ ] Environment variable overrides
+- [ ] Per-document settings
+- [ ] Transformer presets
+- [ ] Export templates
 
-- [ ] **Error Handling**
-  - [ ] Offline mode (queue transforms for when WiFi available)
-  - [ ] API error recovery
-  - [ ] Graceful degradation
-  - [ ] User-friendly error messages
+**Deliverable**: Flexible configuration system
 
-### Deliverable
-A polished, reliable application that feels native to the Paper Pro.
+### Milestone 6.3: Documentation
+- [ ] User guide
+- [ ] API documentation
+- [ ] Tutorial videos (optional)
+- [ ] FAQ
+- [ ] Troubleshooting guide
 
----
+**Deliverable**: Complete documentation
 
-## Phase 6: Distribution (Week 12+)
+## Phase 7: Polish & Optimization (Weeks 14-15)
 
-**Goal**: Get it into people's hands.
+### Milestone 7.1: Performance Optimization
+- [ ] Parser performance tuning
+- [ ] Parallel processing
+- [ ] Memory optimization
+- [ ] AI batch requests
+- [ ] Streaming responses
 
-### Tasks
+**Deliverable**: 2-3x performance improvement
 
-- [ ] **Release**
-  - [ ] GitHub releases with pre-built binaries
-  - [ ] Installation script
-  - [ ] Version management and changelog
-  - [ ] Toltec package (when Paper Pro supported)
+### Milestone 7.2: Error Handling
+- [ ] Comprehensive error types
+- [ ] Graceful degradation
+- [ ] Recovery mechanisms
+- [ ] Detailed error logs
+- [ ] User-friendly messages
 
-- [ ] **Documentation**
-  - [ ] User guide with screenshots
-  - [ ] Video demo
-  - [ ] Troubleshooting guide
-  - [ ] Developer docs for contributors
+**Deliverable**: Rock-solid error handling
 
-- [ ] **Community**
-  - [ ] Beta testing program
-  - [ ] Feature request tracking
-  - [ ] Community transform templates/prompts
+### Milestone 7.3: Testing
+- [ ] 80%+ code coverage
+- [ ] Integration test suite
+- [ ] Performance benchmarks
+- [ ] Edge case testing
+- [ ] Stress testing
 
-### Deliverable
-Easy-to-install app with active community.
+**Deliverable**: Production-ready quality
 
----
+## Phase 8: Release & Community (Week 16+)
 
-## Future Ideas
+### Milestone 8.1: v1.0 Release
+- [ ] Semantic versioning
+- [ ] Release notes
+- [ ] npm package publication
+- [ ] GitHub release
+- [ ] Announcement post
 
-- **Live Transform**: Real-time transformation as you write (streaming)
-- **Pen Gestures**: Custom pen gestures to trigger specific transforms
-- **Multi-page Context**: AI considers multiple pages for better context
-- **Voice Annotations**: Combine voice + ink for richer transforms
-- **Template Library**: Community-shared transformation prompts
-- **Local AI**: On-device inference for basic OCR (no WiFi needed)
-- **Collaboration**: Share transformed pages with others
-- **Keyboard Input**: Optional USB keyboard support for text entry alongside ink
+**Deliverable**: Public v1.0 release
 
----
+### Milestone 8.2: Community Building
+- [ ] Contributing guidelines
+- [ ] Issue templates
+- [ ] Discord/community forum
+- [ ] Example projects
+- [ ] Starter templates
+
+**Deliverable**: Active community
+
+### Milestone 8.3: Ecosystem
+- [ ] Plugin system design
+- [ ] Third-party transformers
+- [ ] Integration examples
+- [ ] API stability
+- [ ] Long-term support plan
+
+**Deliverable**: Extensible ecosystem
+
+## Future Phases (Post-v1.0)
+
+### Phase 9: Advanced Features
+- Real-time collaboration
+- Web interface
+- Mobile apps
+- Cloud hosting option
+- Enterprise features
+
+### Phase 10: AI Enhancements
+- Fine-tuned models
+- Custom training on user data
+- Advanced diagram understanding
+- Math equation recognition
+- Code snippet extraction
+
+### Phase 11: Native Integration
+- reMarkable tablet app
+- System-level integration
+- Background processing
+- Push notifications
+- On-device AI (edge processing)
 
 ## Success Metrics
 
-1. **Accuracy**: Handwriting-to-text works reliably for typical handwriting
-2. **Speed**: Transform results appear within 5-10 seconds
-3. **Usefulness**: Users prefer InkSight over manual transcription
-4. **Reliability**: No crashes during typical use sessions
-5. **Battery**: Minimal impact on battery life
+### Technical
+- Parse 1000+ documents without errors
+- < 5s processing time per page
+- 95%+ OCR accuracy on clear handwriting
+- Zero data loss in sync
+
+### User Experience
+- < 5 minutes setup time
+- Clear documentation
+- Responsive community support
+- Regular updates
+
+### Adoption
+- 100+ GitHub stars
+- 10+ contributors
+- 1000+ users
+- Active community discussions
+
+## Risk Management
+
+### Technical Risks
+- **reMarkable API changes**: Monitor API, maintain compatibility layer
+- **AI provider limits**: Implement rate limiting and quotas
+- **File format changes**: Version detection and migration
+- **Performance issues**: Profile early and often
+
+### Project Risks
+- **Scope creep**: Stick to roadmap, defer nice-to-haves
+- **Maintenance burden**: Automate testing and releases
+- **API costs**: Provide cost estimates, allow self-hosted models
+- **Legal/ToS**: Review reMarkable and AI provider terms
+
+## Dependencies
+
+### Critical
+- reMarkable Cloud API availability
+- AI provider APIs (OpenAI/Anthropic)
+- Node.js ecosystem stability
+
+### Optional
+- SSH access to device
+- Community contributions
+- Third-party tools integration
+
+## Timeline Summary
+
+- **Phase 1-3**: Weeks 1-6 - Foundation & Integration
+- **Phase 4-5**: Weeks 7-11 - Core Features
+- **Phase 6-7**: Weeks 12-15 - UX & Polish
+- **Phase 8**: Week 16+ - Release & Growth
+
+**Estimated time to v1.0**: 4 months of focused development
+
+## Next Steps
+
+1. ✅ Complete project scaffolding
+2. ⏭️ Start Phase 1.1: Cloud API authentication
+3. Set up development device/account
+4. Create first test fixtures
+5. Begin documentation
+
+---
+
+**Last Updated**: 2026-02-05  
+**Current Phase**: Phase 0 - Scaffolding Complete  
+**Next Milestone**: 1.1 - reMarkable Cloud API Integration

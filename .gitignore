@@ -1,42 +1,48 @@
-# Build outputs
-build/
-*.o
-*.moc
-moc_*.cpp
-qrc_*.cpp
-Makefile
-ghostwriter-pro
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
 
-# Qt Creator
-*.pro.user
-*.pro.user.*
-*.autosave
-.qmake.stash
+# Build output
+dist/
+build/
+*.tsbuildinfo
+
+# Environment variables
+.env
+.env.local
+.env.*.local
 
 # IDE
-.idea/
 .vscode/
+.idea/
 *.swp
 *.swo
 *~
-
-# OS files
 .DS_Store
-Thumbs.db
 
-# SDK and toolchain
-sdk/
-toolchain/
-*.sh
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Testing
+coverage/
+.nyc_output/
+
+# Cache
+.cache/
+*.cache
+.eslintcache
 
 # Temporary files
+tmp/
+temp/
 *.tmp
-*.bak
-*.log
 
-# Test outputs
-test_output/
-
-# Local development
-.local/
-.env
+# reMarkable data (for local development)
+remarkable_data/
+*.rm
