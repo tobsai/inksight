@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - API_KEYS=iks_dev_test123,iks_dev_test456
+      - LOG_LEVEL=INFO
+      - STORAGE_DIR=/data
+      - MAX_FILE_SIZE_MB=50
+      - CORS_ORIGINS=*
+    volumes:
+      - ./data:/data
+      - ./app:/app/app  # Mount for development hot-reload
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    restart: unless-stopped
+
+  # Future: Redis for job queue
+  # redis:
+  #   image: redis:7-alpine
+  #   ports:
+  #     - "6379:6379"
+  #   volumes:
+  #     - redis-data:/data
+  #   restart: unless-stopped
+
+# volumes:
+#   redis-data:
