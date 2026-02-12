@@ -183,10 +183,60 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload
 ```
 
-### Run Tests
+### Testing
+
+The test suite includes comprehensive integration tests that exercise the full request lifecycle and catch real-world bugs.
+
+#### Run All Tests
 ```bash
 pytest tests/ -v
 ```
+
+#### Run with Coverage Report
+```bash
+pytest tests/ --cov=app --cov-report=html --cov-report=term-missing
+```
+
+Coverage report will be generated in `htmlcov/index.html`.
+
+#### Run Specific Test Categories
+```bash
+# Authentication tests
+pytest tests/test_auth.py -v
+
+# Integration tests (full workflows)
+pytest tests/test_integration.py -v
+
+# Unit tests (algorithms)
+pytest tests/test_processor.py -v
+
+# File upload and transform tests
+pytest tests/test_transform.py -v
+```
+
+#### Test Coverage
+
+The integration test suite covers:
+
+- **Authentication flows**: Valid/invalid API keys, multi-tenant isolation
+- **File validation**: File type, size limits, preset validation
+- **End-to-end workflows**: Upload → Poll status → Download results
+- **History & pagination**: User job history, sorting, limits
+- **Concurrent processing**: Multiple users, multiple jobs
+- **Error handling**: Invalid UUIDs, missing jobs, permission checks
+- **API contract**: Response schemas, documented behavior
+
+**Minimum coverage target**: 70% (enforced by pytest)
+
+#### Writing Tests
+
+When adding features or fixing bugs:
+
+1. Add integration tests first (TDD approach)
+2. Test both happy paths and error cases
+3. Consider multi-tenant scenarios
+4. Mock external dependencies when needed
+5. Update coverage target if appropriate
 
 ### Docker Build
 ```bash
