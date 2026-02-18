@@ -11,6 +11,7 @@ from typing import Dict
 from uuid import UUID
 
 from ..models import Job, JobStatus
+from .processor import process_file
 
 logger = logging.getLogger("inksight.queue")
 
@@ -112,8 +113,6 @@ class JobQueue:
         Args:
             job: Job to process
         """
-        from .processor import process_file
-        
         logger.info(f"Processing job {job.job_id}")
         
         # Update status
