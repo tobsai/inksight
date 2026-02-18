@@ -1,12 +1,13 @@
 /**
  * InkSight - AI-powered ink transformation for reMarkable Paper Pro
- * 
+ *
  * Main entry point for the library.
  * Exports all public APIs and utilities.
  */
 
 // Cloud API
-export { RemarkableCloudClient } from './cloud/client.js';
+import { RemarkableCloudClient } from './cloud/client.js';
+export { RemarkableCloudClient, RemarkableCloudError } from './cloud/client.js';
 export type {
   RemarkableAuthTokens,
   RemarkableDocument,
@@ -16,6 +17,7 @@ export type {
 } from './cloud/types.js';
 
 // Device Access
+import { RemarkableSSHClient } from './device/ssh-client.js';
 export { RemarkableSSHClient } from './device/ssh-client.js';
 export type { SSHConnectionConfig, DeviceInfo } from './device/ssh-client.js';
 
