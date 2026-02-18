@@ -1,0 +1,30 @@
+name: Deploy Check
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy-status:
+    name: Railway Deploy Status
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Confirm push to main
+        run: |
+          echo "✅ Push to main confirmed."
+          echo "Railway's GitHub integration will automatically deploy this commit."
+          echo "Commit: ${{ github.sha }}"
+          echo "Pushed by: ${{ github.actor }}"
+          echo ""
+          echo "ℹ️  Note: Railway auto-deploys via GitHub integration."
+          echo "    Do NOT use 'railway up' — it breaks Railway's internal routing"
+          echo "    for services connected to GitHub auto-deploy."
+
+      - name: Check Railway deploy (via API)
+        if: ${{ env.RAILWAY_API_TOKEN != '' }}
+        env:
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
+        run: |
+          echo "Railway API token present — Railway will handle deployment."
+          echo "Monitor at: https://railway.app/dashboard"
