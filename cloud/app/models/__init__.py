@@ -1,7 +1,13 @@
 """Data models for InkSight Cloud API."""
 
 from .job import Job, JobStatus, ProcessingStats
-from .transform import TransformRequest, TransformResponse, TransformHistoryItem, TransformHistoryResponse
+from .transform import (
+    TransformRequest,
+    TransformResponse,
+    TransformStatusResponse,
+    TransformHistoryItem,
+    TransformHistoryResponse,
+)
 
 __all__ = [
     "Job",
@@ -9,6 +15,7 @@ __all__ = [
     "ProcessingStats",
     "TransformRequest",
     "TransformResponse",
+    "TransformStatusResponse",
     "TransformHistoryItem",
     "TransformHistoryResponse",
 ]
