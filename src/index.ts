@@ -70,9 +70,8 @@ export type { CacheOptions as RendererCacheOptions } from './renderer/index.js';
 // Transformers — Phase 3 (legacy) + Phase 4 (core transformers)
 export * from './transformers/index.js';
 
-// Storage
-export { DocumentCache } from './storage/cache.js';
-export type { CacheOptions, CacheEntry } from './storage/cache.js';
+// Storage — Phase 5 (SQLite, FTS5, LRU cache)
+export * from './storage/index.js';
 
 // Hybrid Access Layer (Phase 2.3: SSH + Cloud with offline detection)
 export * from './hybrid/index.js';

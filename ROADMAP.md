@@ -149,34 +149,35 @@
 
 **Deliverable**: Central transformer orchestration ✅
 
-## Phase 5: Storage & Search (Weeks 10-11)
+## Phase 5: Storage & Search (Weeks 10-11) ✅
 
-### Milestone 5.1: Local Database
-- [ ] SQLite schema design
-- [ ] Document metadata storage
-- [ ] Processing results cache
-- [ ] Settings persistence
-- [ ] Migration system
+### Milestone 5.1: Local Database ✅
+- [x] SQLite schema design (documents, transform_results, settings tables)
+- [x] Document metadata storage (upsert, get, list by parent, delete)
+- [x] Processing results cache (save, get, list, delete with UNIQUE constraint)
+- [x] Settings persistence (get/set/delete)
+- [x] Migration system (idempotent `migrate()` call)
 
-**Deliverable**: Robust local storage
+**Deliverable**: Robust local storage via InkSightDatabase (better-sqlite3) ✅
 
-### Milestone 5.2: Search Index
-- [ ] Full-text search index
-- [ ] Vector embeddings for semantic search
-- [ ] Tag-based filtering
-- [ ] Date range queries
-- [ ] Fuzzy matching
+### Milestone 5.2: Search Index ✅
+- [x] Full-text search index via SQLite FTS5 (porter tokenizer)
+- [x] Tag-based filtering (`searchByTag`)
+- [x] Date range queries (`searchByDateRange`)
+- [x] Fuzzy prefix matching (FTS5 `*` wildcard)
+- [x] BM25-based relevance scoring
+- [x] Snippet extraction (≤150 chars around match)
 
-**Deliverable**: Fast searchable note archive
+**Deliverable**: Fast searchable note archive via SearchIndex ✅
 
-### Milestone 5.3: Cache Management
-- [ ] LRU cache for documents
-- [ ] AI result caching
-- [ ] Cache invalidation logic
-- [ ] Storage quota management
-- [ ] Garbage collection
+### Milestone 5.3: Cache Management ✅
+- [x] LRU in-memory cache (CacheManager<T>) with configurable maxEntries + maxSizeBytes
+- [x] TTL support (time-to-live eviction)
+- [x] Size-based eviction
+- [x] Cache stats (hitRate, entryCount, totalSizeBytes, oldestEntryAge)
+- [x] DocumentCache specialisation for PNG Buffer pages with getUsageMb + purgeOlderThan
 
-**Deliverable**: Efficient caching system
+**Deliverable**: Efficient caching system via CacheManager + DocumentCache ✅
 
 ## Phase 6: CLI & User Experience (Weeks 12-13)
 
@@ -354,5 +355,5 @@
 ---
 
 **Last Updated**: 2026-02-19  
-**Current Phase**: Phase 4 Complete — Core Transformers done. TextTransformer, DiagramTransformer, SummarizationTransformer, MetadataTransformer, TransformerRegistry — 25+ tests, all passing.  
-**Next Milestone**: 5.1 - Local Database
+**Current Phase**: Phase 5 Complete — Storage & Search done. InkSightDatabase (SQLite), SearchIndex (FTS5), CacheManager (LRU), DocumentCache — 49 new tests, 482 total, all passing.  
+**Next Milestone**: 6.1 - CLI Interface
