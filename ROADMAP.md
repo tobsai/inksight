@@ -78,14 +78,16 @@
 
 **Deliverable**: Multi-provider AI system ✅
 
-### Milestone 3.2: Image Rendering
-- [ ] Stroke-to-image renderer
-- [ ] Canvas implementation
-- [ ] Resolution optimization
-- [ ] Color and layer support
-- [ ] Caching rendered pages
+### Milestone 3.2: Image Rendering ✅
+- [x] Stroke-to-image renderer (`src/renderer/rm-parser.ts` — full v5/v6 binary parser)
+- [x] Canvas implementation (`src/renderer/page-renderer.ts` — uses `canvas` npm package)
+- [x] Resolution optimization (scale factor, half-res for AI)
+- [x] Color and layer support (9 colors, 16+ pen types, per-layer rendering)
+- [x] Caching rendered pages (`src/renderer/render-cache.ts` — LRU, TTL, sha256 keys)
+- [x] High-level DocumentRenderer (`src/renderer/document-renderer.ts`)
+- [x] 37 unit tests, all mocked, all passing (302 total)
 
-**Deliverable**: High-quality rendering of handwriting to images
+**Deliverable**: High-quality rendering of handwriting to images ✅
 
 ### Milestone 3.3: Basic Text Recognition
 - [ ] Send rendered pages to Vision AI
@@ -339,5 +341,5 @@
 ---
 
 **Last Updated**: 2026-02-19  
-**Current Phase**: Phase 3.1 Complete — AI Provider Abstraction (OpenAI + Anthropic, CostTracker, AIProviderRegistry, 42 tests).  
-**Next Milestone**: 3.2 - Image Rendering
+**Current Phase**: Phase 3.2 Complete — Image Rendering (RMParser, PageRenderer, RenderCache, DocumentRenderer, 37 tests, 302 total).  
+**Next Milestone**: 3.3 - Basic Text Recognition

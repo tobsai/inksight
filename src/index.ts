@@ -60,6 +60,13 @@ export type {
 // AI Providers — Phase 3.1
 export * from './ai/index.js';
 
+// Renderer — Phase 3.2: .rm stroke → PNG
+// Note: RMPage/RMLayer/RMPoint already exported from parser; export only new renderer types + classes
+export { parseRMFile, PageRenderer, RenderCache, DocumentRenderer } from './renderer/index.js';
+export type { RenderOptions, RenderResult } from './renderer/index.js';
+// CacheOptions from renderer (distinct from storage CacheOptions — use RendererCacheOptions alias)
+export type { CacheOptions as RendererCacheOptions } from './renderer/index.js';
+
 // Transformers
 export { BaseTransformer } from './transformers/base-transformer.js';
 export { TextRecognitionTransformer } from './transformers/text-recognition.js';
