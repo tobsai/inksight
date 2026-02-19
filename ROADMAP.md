@@ -67,14 +67,16 @@
 
 ## Phase 3: AI Integration (Weeks 5-6)
 
-### Milestone 3.1: AI Provider Abstraction
-- [ ] Base provider interface
-- [ ] OpenAI integration (GPT-4 Vision)
-- [ ] Anthropic integration (Claude)
-- [ ] Provider selection logic
-- [ ] Cost tracking per provider
+### Milestone 3.1: AI Provider Abstraction ✅
+- [x] Base provider interface (`TransformRequest`, `TransformResult`, `AITransformProvider`)
+- [x] OpenAI integration (GPT-4o vision) — `OpenAIProvider`
+- [x] Anthropic integration (Claude Opus/Sonnet) — `AnthropicProvider`
+- [x] Provider selection logic — `AIProviderRegistry` (auto-fallback + explicit routing)
+- [x] Cost tracking per provider — `CostTracker` with file persistence
+- [x] System prompts for all 5 transform types
+- [x] 42 unit tests, all mocked (no real API calls), all passing
 
-**Deliverable**: Multi-provider AI system
+**Deliverable**: Multi-provider AI system ✅
 
 ### Milestone 3.2: Image Rendering
 - [ ] Stroke-to-image renderer
@@ -337,5 +339,5 @@
 ---
 
 **Last Updated**: 2026-02-19  
-**Current Phase**: Phase 2 Complete — Device Integration done (2.1 SSH, 2.2 File Monitoring, 2.3 Hybrid Mode).  
-**Next Milestone**: 3.1 - AI Provider Abstraction
+**Current Phase**: Phase 3.1 Complete — AI Provider Abstraction (OpenAI + Anthropic, CostTracker, AIProviderRegistry, 42 tests).  
+**Next Milestone**: 3.2 - Image Rendering

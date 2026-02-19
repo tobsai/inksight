@@ -57,26 +57,15 @@ export type {
   Color,
 } from './parser/types.js';
 
-// AI Providers
-export { AIProvider } from './ai/provider.js';
-export { OpenAIProvider } from './ai/openai-provider.js';
-export type {
-  AIProviderConfig,
-  TextRecognitionRequest,
-  TextRecognitionResponse,
-  TextAnalysisRequest,
-  TextAnalysisResponse,
-  DiagramAnalysisRequest,
-  DiagramAnalysisResponse,
-} from './ai/provider.js';
+// AI Providers — Phase 3.1
+export * from './ai/index.js';
 
 // Transformers
 export { BaseTransformer } from './transformers/base-transformer.js';
 export { TextRecognitionTransformer } from './transformers/text-recognition.js';
-export type {
-  TransformerConfig,
-  TransformResult,
-} from './transformers/base-transformer.js';
+// Note: TransformResult is exported from the AI module (Phase 3.1).
+// The transformer's TransformResult is accessible via BaseTransformer directly.
+export type { TransformerConfig } from './transformers/base-transformer.js';
 
 // Storage
 export { DocumentCache } from './storage/cache.js';
