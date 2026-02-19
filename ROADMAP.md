@@ -44,13 +44,15 @@
 
 **Deliverable**: Reliable SSH client for device access ✅
 
-### Milestone 2.2: File Monitoring
-- [ ] Real-time file change detection
-- [ ] Incremental sync
-- [ ] Conflict resolution
-- [ ] Change event streaming
+### Milestone 2.2: File Monitoring ✅
+- [x] Real-time file change detection (inotifywait + polling fallback)
+- [x] Incremental sync (IncrementalSyncManager)
+- [x] Conflict resolution (local / remote / newest / manual strategies)
+- [x] Change event streaming with debouncing
+- [x] Auto-reconnect on SSH disconnect
+- [x] 30+ new unit tests, all passing
 
-**Deliverable**: System that detects new/modified documents in real-time
+**Deliverable**: System that detects new/modified documents in real-time ✅
 
 ### Milestone 2.3: Hybrid Mode
 - [ ] Fallback: Try SSH, then Cloud
@@ -332,5 +334,5 @@
 ---
 
 **Last Updated**: 2026-02-18  
-**Current Phase**: Phase 2 - In Progress, 2.1 complete  
-**Next Milestone**: 2.2 - File Monitoring (inotifywait-based real-time detection)
+**Current Phase**: Phase 2 - In Progress, 2.2 complete  
+**Next Milestone**: 2.3 - Hybrid Mode (SSH + Cloud fallback, offline detection)
