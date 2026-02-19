@@ -14,7 +14,7 @@ export type {
   DownloadedDocument,
   DocumentMetadata,
   DocumentContent,
-  InkSightConfig,
+  InkSightConfig as CloudApiConfig,
   TransformPreset,
   TransformSubmitResult,
   TransformStatusResult,
@@ -81,6 +81,18 @@ export * from './recognition/index.js';
 
 // OCR — Phase 3.3: Text recognition + diagram analysis + document processor
 export * from './ocr/index.js';
+
+// Config — Phase 6
+export * from './config/index.js';
+
+// CLI utilities — Phase 6
+export * from './cli/exports.js';
+
+// CLI — Phase 6.1: command-line interface, setup wizard, formatter
+export * from './cli/index.js';
+
+// Config — Phase 6.2: configuration system, presets, export templates
+export * from './config/index.js';
 
 /**
  * Library version

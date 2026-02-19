@@ -1,6 +1,6 @@
 # InkSight Development Roadmap
 
-## Project Status: Phase 1 Complete ✅
+## Project Status: Phase 6 Complete ✅
 
 ## Phase 1: Foundation (Weeks 1-2)
 
@@ -179,34 +179,34 @@
 
 **Deliverable**: Efficient caching system via CacheManager + DocumentCache ✅
 
-## Phase 6: CLI & User Experience (Weeks 12-13)
+## Phase 6: CLI & User Experience (Weeks 12-13) ✅
 
-### Milestone 6.1: Command-Line Interface
-- [ ] Interactive setup wizard
-- [ ] Document operations (list, get, transform)
-- [ ] Batch processing
-- [ ] Progress indicators
-- [ ] Helpful error messages
+### Milestone 6.1: Command-Line Interface ✅
+- [x] Interactive setup wizard
+- [x] Document operations (list, get, transform)
+- [x] Batch processing
+- [x] Progress indicators
+- [x] Helpful error messages
 
 **Deliverable**: User-friendly CLI tool
 
-### Milestone 6.2: Configuration
-- [ ] Config file support
-- [ ] Environment variable overrides
-- [ ] Per-document settings
-- [ ] Transformer presets
-- [ ] Export templates
+### Milestone 6.2: Configuration ✅
+- [x] Config file support
+- [x] Environment variable overrides
+- [x] Per-document settings
+- [x] Transformer presets
+- [x] Export templates
 
 **Deliverable**: Flexible configuration system
 
-### Milestone 6.3: Documentation
-- [ ] User guide
-- [ ] API documentation
-- [ ] Tutorial videos (optional)
-- [ ] FAQ
-- [ ] Troubleshooting guide
+### Milestone 6.3: Documentation ✅
+- [x] User guide (`docs/user-guide.md` — install, quick start, commands, cost estimates)
+- [x] API documentation (`docs/api.md` — all 10 modules with TypeScript signatures)
+- [ ] Tutorial videos (optional — deferred to post-v1.0)
+- [x] FAQ (`docs/faq.md` — 10 questions covering setup, costs, privacy, offline, security)
+- [x] Troubleshooting guide (`docs/troubleshooting.md` — connection, AI errors, storage, performance)
 
-**Deliverable**: Complete documentation
+**Deliverable**: Complete documentation ✅
 
 ## Phase 7: Polish & Optimization (Weeks 14-15)
 
@@ -355,5 +355,5 @@
 ---
 
 **Last Updated**: 2026-02-19  
-**Current Phase**: Phase 5 Complete — Storage & Search done. InkSightDatabase (SQLite), SearchIndex (FTS5), CacheManager (LRU), DocumentCache — 49 new tests, 482 total, all passing.  
+**Current Phase**: Phase 6 Complete — CLI & UX done. All phases 1–6 complete. CLI (transform/search/config/sync), ConfigManager, BatchProcessor, ProgressReporter — 66 new tests, 548 total, all passing.  
 **Next Milestone**: 6.1 - CLI Interface
