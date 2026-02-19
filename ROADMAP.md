@@ -46,13 +46,15 @@
 
 ### Milestone 2.2: File Monitoring ✅
 - [x] Real-time file change detection (inotifywait + polling fallback)
-- [x] Incremental sync (IncrementalSyncManager)
-- [x] Conflict resolution (local / remote / newest / manual strategies)
-- [x] Change event streaming with debouncing
+- [x] `IncrementalSyncEngine` — hash-based state tracking, full + incremental sync, JSON state persistence
+- [x] `ConflictResolver` — device-wins / local-wins / newest-wins strategies
+- [x] `FileMonitor` facade — extends EventEmitter, emits 'change' / 'synced' / 'error', integrates sync engine
+- [x] `IncrementalSyncManager` — mtime-based sync with configurable conflict resolution
+- [x] Change event streaming with debouncing (affectedFiles merging)
 - [x] Auto-reconnect on SSH disconnect
-- [x] 30+ new unit tests, all passing
+- [x] 55+ new unit tests (224 total), all passing
 
-**Deliverable**: System that detects new/modified documents in real-time ✅
+**Deliverable**: System that detects new/modified documents in real-time and syncs them locally ✅
 
 ### Milestone 2.3: Hybrid Mode ✅
 - [x] Fallback: Try SSH, then Cloud (auto mode with configurable preferSSH)
@@ -334,6 +336,6 @@
 
 ---
 
-**Last Updated**: 2026-02-18  
-**Current Phase**: Phase 2 Complete — Device Integration done.  
+**Last Updated**: 2026-02-19  
+**Current Phase**: Phase 2 Complete — Device Integration done (2.1 SSH, 2.2 File Monitoring, 2.3 Hybrid Mode).  
 **Next Milestone**: 3.1 - AI Provider Abstraction

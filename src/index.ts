@@ -22,13 +22,26 @@ export type {
   WaitForTransformOptions,
 } from './cloud/types.js';
 
-// Hybrid Access (Phase 2.3: unified SSH + Cloud client)
-export * from './hybrid/index.js';
-
-// Device Access (Phase 2.1: SSH layer)
+// Device Access — Phase 2.1: SSH layer, Phase 2.2: file monitoring + sync
 import { RemarkableSSHClient } from './device/ssh-client.js';
 export { RemarkableSSHClient } from './device/ssh-client.js';
-export type { SSHConnectionOptions, RemoteFile, DeviceInfo, DocumentChange } from './device/types.js';
+export { FileMonitor } from './device/file-monitor.js';
+export type { ChangeHandler, FileMonitorOptions, SyncEngineInterface } from './device/file-monitor.js';
+export { IncrementalSyncEngine } from './device/sync-engine.js';
+export { ConflictResolver } from './device/conflict-resolver.js';
+export { IncrementalSyncManager } from './device/sync-manager.js';
+export type {
+  SSHConnectionOptions,
+  RemoteFile,
+  DeviceInfo,
+  DocumentChange,
+  WatchOptions,
+  WatchHandle,
+  SyncState,
+  SyncResult,
+  ConflictStrategy,
+} from './device/types.js';
+export type { VersionInfo, ConflictResolutionResult } from './device/conflict-resolver.js';
 
 // Parser
 export { RMParser } from './parser/rm-parser.js';

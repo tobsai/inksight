@@ -1,82 +1,105 @@
 /**
- * OpenAI Provider Implementation
- * 
- * Uses GPT-4 Vision for image-based text recognition and diagram analysis,
- * and GPT-4 for text analysis tasks.
+ * OpenAI Provider — Phase 3.1
+ *
+ * Sends rendered ink images to GPT-4o (vision-capable) for transformation.
+ *
+ * Pricing (as of 2024):
+ *   gpt-4o: $2.50 / 1M input tokens, $10.00 / 1M output tokens
  */
 
-import {
+import OpenAI from 'openai';
+import type {
   AIProvider,
-  type AIProviderConfig,
-  type TextRecognitionRequest,
-  type TextRecognitionResponse,
-  type TextAnalysisRequest,
-  type TextAnalysisResponse,
-  type DiagramAnalysisRequest,
-  type DiagramAnalysisResponse,
+  AIProviderConfig,
+  AITransformProvider,
+  TransformRequest,
+  TransformResult,
 } from './provider.js';
+import { SYSTEM_PROMPTS } from './system-prompts.js';
 
-export class OpenAIProvider extends AIProvider {
-  private client: any; // OpenAI client instance
+const INPUT_COST_PER_TOKEN = 2.5 / 1_000_000;   // $2.50 / 1M
+const OUTPUT_COST_PER_TOKEN = 10.0 / 1_000_000; // $10.00 / 1M
+
+export class OpenAIProvider implements AITransformProvider {
+  readonly name: AIProvider = 'openai';
+  readonly defaultModel = 'gpt-4o';
+
+  private client: OpenAI;
+  private config: AIProviderConfig;
 
   constructor(config: AIProviderConfig) {
-    super({
-      model: 'gpt-4-vision-preview',
-      ...config,
+    this.config = config;
+    this.client = new OpenAI({
+      apiKey: config.apiKey,
+      timeout: config.timeoutMs ?? 60_000,
+      maxRetries: config.maxRetries ?? 3,
     });
   }
 
-  async recognizeText(
-    request: TextRecognitionRequest
-  ): Promise<TextRecognitionResponse> {
-    throw new Error('Not implemented - Phase 3.3');
-    // TODO: Implement text recognition
-    // 1. Convert image to base64
-    // 2. Send to GPT-4 Vision with OCR prompt
-    // 3. Parse response
-    // 4. Return structured text
+  isAvailable(): boolean {
+    return Boolean(this.config.apiKey && this.config.apiKey.trim().length > 0);
   }
 
-  async analyzeText(
-    request: TextAnalysisRequest
-  ): Promise<TextAnalysisResponse> {
-    throw new Error('Not implemented - Phase 4');
-    // TODO: Implement text analysis
-    // Route to appropriate prompt based on task
-    // Use GPT-4 or GPT-4-turbo
+  async transform(request: TransformRequest): Promise<TransformResult> {
+    const start = Date.now();
+    const model = this.config.model ?? this.defaultModel;
+    const systemPrompt = SYSTEM_PROMPTS[request.transformType];
+
+    const base64Image = request.imageData.toString('base64');
+    const dataUrl = `data:${request.mimeType};base64,${base64Image}`;
+
+    const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
+      {
+        role: 'system',
+        content: systemPrompt,
+      },
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'image_url',
+            image_url: { url: dataUrl, detail: 'high' },
+          },
+          {
+            type: 'text',
+            text:
+              request.transformType === 'translate' && request.options?.language
+                ? `Please translate to: ${request.options.language}`
+                : 'Please process this handwritten ink page.',
+          },
+        ],
+      },
+    ];
+
+    const response = await this.client.chat.completions.create({
+      model,
+      messages,
+      max_tokens: request.options?.maxTokens ?? 4096,
+      temperature: request.options?.temperature ?? 0,
+    });
+
+    const choice = response.choices[0];
+    const content = choice.message.content ?? '';
+    const inputTokens = response.usage?.prompt_tokens ?? 0;
+    const outputTokens = response.usage?.completion_tokens ?? 0;
+    const costUsd = this.estimateCost(inputTokens, outputTokens);
+    const durationMs = Date.now() - start;
+
+    return {
+      provider: this.name,
+      model,
+      content,
+      inputTokens,
+      outputTokens,
+      costUsd,
+      durationMs,
+    };
   }
 
-  async analyzeDiagram(
-    request: DiagramAnalysisRequest
-  ): Promise<DiagramAnalysisResponse> {
-    throw new Error('Not implemented - Phase 4.2');
-    // TODO: Implement diagram analysis
-    // Use GPT-4 Vision to describe diagram
-    // Extract elements if requested
-    // Generate Mermaid code if requested
-  }
-
-  getName(): string {
-    return 'OpenAI';
-  }
-
-  async isAvailable(): Promise<boolean> {
-    try {
-      // TODO: Test API connection
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
-  estimateCost(
-    operation: 'text-recognition' | 'text-analysis' | 'diagram-analysis',
-    inputSize: number
-  ): number {
-    // TODO: Implement cost estimation
-    // Based on OpenAI pricing
-    // Vision API: ~$0.01 per image
-    // Text API: ~$0.03 per 1K tokens
-    return 0;
+  estimateCost(inputTokens: number, outputTokens: number): number {
+    return (
+      inputTokens * INPUT_COST_PER_TOKEN +
+      outputTokens * OUTPUT_COST_PER_TOKEN
+    );
   }
 }

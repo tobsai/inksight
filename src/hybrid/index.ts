@@ -1,12 +1,18 @@
 /**
- * Hybrid access layer — unified SSH + Cloud routing with offline detection.
+ * Hybrid access layer — Phase 2.3
+ *
+ * Unified SSH + Cloud client with automatic fallback and offline detection.
  */
 
 export { HybridClient } from './hybrid-client.js';
-export { OfflineDetector } from './offline-detector.js';
 export type {
   AccessMode,
-  ConnectionStatus,
   HybridClientOptions,
+  HybridStatus,
 } from './hybrid-client.js';
-export type { OfflineDetectorOptions } from './offline-detector.js';
+
+export { OfflineDetector } from './offline-detector.js';
+export type {
+  ConnectionStatus,
+  OfflineDetectorOptions,
+} from './offline-detector.js';

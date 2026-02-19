@@ -1,108 +1,63 @@
 /**
- * AI Provider Abstraction
- * 
- * Unified interface for different AI services (OpenAI, Anthropic, etc.)
- * Allows swapping providers or using multiple providers for different tasks.
+ * AI Provider Abstraction — Phase 3.1
+ *
+ * Base interfaces and types for the multi-provider AI system.
+ * Providers receive a rendered image of an ink page and return
+ * transformed text/markdown without any cloud dependency.
  */
 
-export interface AIProviderConfig {
-  apiKey: string;
-  model?: string;
-  maxTokens?: number;
-  temperature?: number;
-}
+export type TransformType =
+  | 'text'
+  | 'diagram'
+  | 'summary'
+  | 'action-items'
+  | 'translate';
 
-export interface TextRecognitionRequest {
-  image: Uint8Array; // PNG or JPEG
-  language?: string;
-  confidence?: boolean;
-}
+export type AIProvider = 'openai' | 'anthropic' | 'auto';
 
-export interface TextRecognitionResponse {
-  text: string;
-  confidence?: number;
-  words?: Array<{
-    text: string;
-    confidence: number;
-    boundingBox?: { x: number; y: number; width: number; height: number };
-  }>;
-}
-
-export interface TextAnalysisRequest {
-  text: string;
-  task: 'summarize' | 'extract-metadata' | 'generate-tags' | 'find-tasks';
-  options?: Record<string, unknown>;
-}
-
-export interface TextAnalysisResponse {
-  result: string | Record<string, unknown>;
-  usage?: {
-    inputTokens: number;
-    outputTokens: number;
-    cost?: number;
+export interface TransformRequest {
+  /** PNG or JPEG image of the ink page */
+  imageData: Buffer;
+  mimeType: 'image/png' | 'image/jpeg';
+  transformType: TransformType;
+  options?: {
+    /** Target language for translate type */
+    language?: string;
+    maxTokens?: number;
+    temperature?: number;
   };
 }
 
-export interface DiagramAnalysisRequest {
-  image: Uint8Array;
-  task: 'describe' | 'extract-elements' | 'generate-mermaid';
+export interface TransformResult {
+  provider: AIProvider;
+  model: string;
+  /** The transformed text/markdown output */
+  content: string;
+  inputTokens: number;
+  outputTokens: number;
+  /** Estimated cost in USD */
+  costUsd: number;
+  durationMs: number;
 }
 
-export interface DiagramAnalysisResponse {
-  description?: string;
-  elements?: Array<{
-    type: 'box' | 'circle' | 'arrow' | 'line' | 'text';
-    properties: Record<string, unknown>;
-  }>;
-  mermaidCode?: string;
+export interface AIProviderConfig {
+  apiKey: string;
+  /** Override the provider's default model */
+  model?: string;
+  /** Default: 3 */
+  maxRetries?: number;
+  /** Default: 60 000 ms */
+  timeoutMs?: number;
 }
 
-/**
- * Abstract base class for AI providers
- */
-export abstract class AIProvider {
-  protected config: AIProviderConfig;
+export interface AITransformProvider {
+  readonly name: AIProvider;
+  readonly defaultModel: string;
 
-  constructor(config: AIProviderConfig) {
-    this.config = config;
-  }
+  /** Returns true if the API key is configured */
+  isAvailable(): boolean;
 
-  /**
-   * Recognize text from image (OCR/Handwriting recognition)
-   */
-  abstract recognizeText(
-    request: TextRecognitionRequest
-  ): Promise<TextRecognitionResponse>;
+  transform(request: TransformRequest): Promise<TransformResult>;
 
-  /**
-   * Analyze text (summarization, extraction, etc.)
-   */
-  abstract analyzeText(
-    request: TextAnalysisRequest
-  ): Promise<TextAnalysisResponse>;
-
-  /**
-   * Analyze diagram/drawing
-   */
-  abstract analyzeDiagram(
-    request: DiagramAnalysisRequest
-  ): Promise<DiagramAnalysisResponse>;
-
-  /**
-   * Get provider name
-   */
-  abstract getName(): string;
-
-  /**
-   * Check if provider is available
-   */
-  abstract isAvailable(): Promise<boolean>;
-
-  /**
-   * Get cost estimate for operation
-   */
-  abstract estimateCost(
-    operation: 'text-recognition' | 'text-analysis' | 'diagram-analysis',
-    inputSize: number
-  ): number;
+  estimateCost(inputTokens: number, outputTokens: number): number;
 }
