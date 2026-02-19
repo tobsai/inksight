@@ -14,6 +14,12 @@ export type {
   DownloadedDocument,
   DocumentMetadata,
   DocumentContent,
+  InkSightConfig,
+  TransformPreset,
+  TransformSubmitResult,
+  TransformStatusResult,
+  TransformJobStatus,
+  WaitForTransformOptions,
 } from './cloud/types.js';
 
 // Device Access

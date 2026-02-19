@@ -14,12 +14,20 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
 import { readFile, writeFile } from 'fs/promises';
 import { randomUUID } from 'crypto';
+import { basename } from 'node:path';
 import type {
   RemarkableAuthTokens,
   RemarkableDocument,
   RemarkableServiceEndpoints,
   DownloadedDocument,
+  InkSightConfig,
+  TransformPreset,
+  TransformSubmitResult,
+  TransformStatusResult,
+  WaitForTransformOptions,
 } from './types.js';
+
+const INKSIGHT_DEFAULT_API_URL = 'https://inksight-api.mtree.io';
 
 export class RemarkableCloudError extends Error {
   constructor(
@@ -43,11 +51,15 @@ export class RemarkableCloudClient {
   private discoveryURL = 'https://service-manager-production-dot-remarkable-production.appspot.com';
   private endpoints?: RemarkableServiceEndpoints;
   private deviceId: string;
+  private inksightApiKey?: string;
+  private inksightApiUrl: string;
 
-  constructor(tokens?: RemarkableAuthTokens) {
+  constructor(tokens?: RemarkableAuthTokens, config?: InkSightConfig) {
     this.deviceToken = tokens?.deviceToken;
     this.userToken = tokens?.userToken;
     this.deviceId = randomUUID();
+    this.inksightApiKey = config?.inksightApiKey;
+    this.inksightApiUrl = config?.inksightApiUrl ?? INKSIGHT_DEFAULT_API_URL;
 
     this.httpClient = axios.create({
       timeout: 30000,
@@ -288,6 +300,142 @@ export class RemarkableCloudClient {
   async deleteDocument(documentId: string): Promise<void> {
     throw new Error('Not implemented - Phase 1.1');
     // TODO: Implement document deletion
+  }
+
+  // ─── InkSight Cloud Transform API ──────────────────────────────────────────
+
+  /**
+   * Submit a .rm file for AI transformation via the InkSight Cloud API.
+   *
+   * @param filePath  Absolute or relative path to the .rm file
+   * @param preset    Processing preset (default: 'medium')
+   * @returns         Job metadata: { jobId, status, createdAt }
+   */
+  async submitTransform(
+    filePath: string,
+    preset: TransformPreset = 'medium'
+  ): Promise<TransformSubmitResult> {
+    if (!this.inksightApiKey) {
+      throw new RemarkableCloudError(
+        'InkSight API key not configured. Pass inksightApiKey in the config.',
+        'NO_INKSIGHT_API_KEY'
+      );
+    }
+
+    let fileData: Buffer;
+    try {
+      fileData = await readFile(filePath) as unknown as Buffer;
+    } catch (error) {
+      throw new RemarkableCloudError(
+        `File not found or unreadable: ${filePath}`,
+        'FILE_NOT_FOUND'
+      );
+    }
+
+    const formData = new FormData();
+    formData.append('file', new Blob([fileData]), basename(filePath));
+    formData.append('preset', preset);
+
+    try {
+      const response = await this.httpClient.post(
+        `${this.inksightApiUrl}/transform`,
+        formData,
+        {
+          headers: {
+            'X-API-Key': this.inksightApiKey,
+          },
+        }
+      );
+      return response.data as TransformSubmitResult;
+    } catch (error) {
+      if (error instanceof RemarkableCloudError) throw error;
+      if (error instanceof AxiosError) {
+        throw new RemarkableCloudError(
+          `Transform submission failed: ${error.message}`,
+          'SUBMIT_FAILED',
+          error.response?.status
+        );
+      }
+      throw new RemarkableCloudError('Transform submission failed', 'SUBMIT_FAILED');
+    }
+  }
+
+  /**
+   * Poll the status of a previously submitted transform job.
+   *
+   * @param jobId  Job ID returned by submitTransform()
+   */
+  async pollTransformStatus(jobId: string): Promise<TransformStatusResult> {
+    if (!this.inksightApiKey) {
+      throw new RemarkableCloudError(
+        'InkSight API key not configured. Pass inksightApiKey in the config.',
+        'NO_INKSIGHT_API_KEY'
+      );
+    }
+
+    try {
+      const response = await this.httpClient.get(
+        `${this.inksightApiUrl}/status/${jobId}`,
+        {
+          headers: {
+            'X-API-Key': this.inksightApiKey,
+          },
+        }
+      );
+      return response.data as TransformStatusResult;
+    } catch (error) {
+      if (error instanceof RemarkableCloudError) throw error;
+      if (error instanceof AxiosError) {
+        throw new RemarkableCloudError(
+          `Failed to poll transform status: ${error.message}`,
+          'POLL_FAILED',
+          error.response?.status
+        );
+      }
+      throw new RemarkableCloudError('Failed to poll transform status', 'POLL_FAILED');
+    }
+  }
+
+  /**
+   * Poll until the transform job completes or fails, respecting a timeout.
+   *
+   * @param jobId  Job ID to wait for
+   * @param opts   Optional { pollIntervalMs, timeoutMs }
+   * @throws RemarkableCloudError with code TRANSFORM_FAILED if job failed
+   * @throws RemarkableCloudError with code TRANSFORM_TIMEOUT if timed out
+   */
+  async waitForTransform(
+    jobId: string,
+    opts?: WaitForTransformOptions
+  ): Promise<TransformStatusResult> {
+    const pollIntervalMs = opts?.pollIntervalMs ?? 5_000;
+    const timeoutMs = opts?.timeoutMs ?? 5 * 60 * 1_000;
+    const startTime = Date.now();
+
+    while (true) {
+      const result = await this.pollTransformStatus(jobId);
+
+      if (result.status === 'completed') {
+        return result;
+      }
+
+      if (result.status === 'failed') {
+        throw new RemarkableCloudError(
+          `Transform job ${jobId} failed: ${result.error ?? 'Unknown error'}`,
+          'TRANSFORM_FAILED'
+        );
+      }
+
+      const elapsed = Date.now() - startTime;
+      if (elapsed + pollIntervalMs >= timeoutMs) {
+        throw new RemarkableCloudError(
+          `Transform job ${jobId} timed out after ${timeoutMs}ms`,
+          'TRANSFORM_TIMEOUT'
+        );
+      }
+
+      await new Promise<void>(resolve => setTimeout(resolve, pollIntervalMs));
+    }
   }
 
   /**

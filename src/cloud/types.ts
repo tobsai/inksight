@@ -3,6 +3,43 @@
  * Based on research from splitbrain/ReMarkableAPI and rmapi projects
  */
 
+// ─── InkSight Cloud API ───────────────────────────────────────────────────────
+
+export interface InkSightConfig {
+  /** API key for the InkSight Cloud transform service */
+  inksightApiKey?: string;
+  /** Base URL for the InkSight Cloud API (default: https://inksight-api.mtree.io) */
+  inksightApiUrl?: string;
+}
+
+export type TransformPreset = 'minimal' | 'medium' | 'aggressive';
+
+export interface TransformSubmitResult {
+  jobId: string;
+  status: string;
+  createdAt: string;
+}
+
+export type TransformJobStatus = 'queued' | 'processing' | 'completed' | 'failed';
+
+export interface TransformStatusResult {
+  jobId: string;
+  status: TransformJobStatus;
+  /** Completion percentage 0–100 */
+  progress?: number;
+  /** Path/URL to the output file when completed */
+  outputPath?: string;
+  /** Error message when status is 'failed' */
+  error?: string;
+}
+
+export interface WaitForTransformOptions {
+  /** How often to poll (ms). Default: 5000 */
+  pollIntervalMs?: number;
+  /** Maximum wait time before throwing (ms). Default: 300000 (5 min) */
+  timeoutMs?: number;
+}
+
 export interface RemarkableAuthTokens {
   deviceToken: string;
   userToken: string;

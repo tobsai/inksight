@@ -1,0 +1,87 @@
+# InkSight On-Device Daemon Configuration
+# =========================================
+
+# Directory where reMarkable stores notebooks
+xochitl_dir: /home/root/.local/share/remarkable/xochitl
+
+# How often to poll for file changes (seconds)
+# Lower = more responsive, higher = less CPU usage
+poll_interval: 2.0
+
+# Seconds of inactivity before a note is considered "finished"
+# and queued for cloud processing
+idle_threshold: 30.0
+
+# Stroke smoothing settings
+smoothing:
+  enabled: true
+  # Algorithm: "moving_average", "gaussian", "rdp" (Ramer-Douglas-Peucker)
+  algorithm: gaussian
+  # Window size for moving average / gaussian (odd number, larger = smoother)
+  window_size: 5
+  # Gaussian sigma (only for gaussian algorithm)
+  sigma: 1.0
+  # RDP epsilon tolerance (only for rdp algorithm, in device units)
+  rdp_epsilon: 2.0
+  # Minimum number of points in a stroke to apply smoothing
+  min_points: 5
+
+# Pressure normalization
+pressure_normalization:
+  enabled: true
+  # Target range (0-255 for v6 format)
+  target_min: 10
+  target_max: 245
+  # Percentile-based normalization (ignore outliers)
+  low_percentile: 5
+  high_percentile: 95
+
+# Line straightening for diagrams
+line_straightening:
+  enabled: true
+  # Maximum deviation from a straight line (in device units) to trigger straightening
+  straightness_threshold: 15.0
+  # Minimum stroke length to consider for straightening
+  min_length: 50.0
+  # Maximum number of points in a stroke to consider (long strokes are likely handwriting)
+  max_points: 30
+
+# Processing behavior
+processing:
+  # Write enhanced strokes to a new layer (true) or modify in place (false)
+  # WARNING: in_place=true modifies original files. Use with caution.
+  use_enhanced_layer: true
+  # Name for the enhanced layer
+  enhanced_layer_name: "InkSight Enhanced"
+  # Skip strokes made with these tools (eraser, area eraser)
+  skip_tools: [6, 8]
+  # Only process strokes from these tools (empty = all except skip_tools)
+  # Tool IDs: 0=paintbrush, 1=pencil, 2=ballpoint, 3=marker, 4=fineliner, 5=highlighter, 7=mech_pencil
+  only_tools: []
+
+# Cloud sync settings
+cloud:
+  enabled: false
+  # Cloud API endpoint
+  api_url: ""
+  # API key for authentication
+  api_key: ""
+  # Queue file for pending cloud jobs
+  queue_file: /home/root/.inksight/cloud_queue.json
+
+# Logging
+logging:
+  level: INFO
+  # Log file path
+  file: /home/root/.inksight/inksight.log
+  # Max log file size in MB before rotation
+  max_size_mb: 10
+  # Number of backup log files to keep
+  backup_count: 3
+
+# Daemon settings
+daemon:
+  # PID file location
+  pid_file: /home/root/.inksight/inksight.pid
+  # Run in foreground (useful for debugging)
+  foreground: false

@@ -1,8 +1,8 @@
 /**
  * Unit tests for RemarkableCloudClient
  *
- * Tests the authentication flow, service discovery, and document listing
- * using mocked axios requests.
+ * Tests the authentication flow, service discovery, document listing,
+ * and InkSight transform submission / status polling using mocked axios.
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -16,6 +16,12 @@ vi.mock('fs/promises');
 const mockAxios = vi.mocked(axios);
 const mockWriteFile = vi.mocked(writeFile);
 const mockReadFile = vi.mocked(readFile);
+
+// Shared InkSight config used across transform tests
+const INKSIGHT_CONFIG = {
+  inksightApiKey: 'test-api-key-abc123',
+  inksightApiUrl: 'https://inksight-api.mtree.io',
+};
 
 describe('RemarkableCloudClient', () => {
   let client: RemarkableCloudClient;
@@ -395,6 +401,240 @@ describe('RemarkableCloudClient', () => {
         deviceToken: 'device-token-abc',
         userToken: 'user-token-xyz',
       });
+    });
+  });
+
+  // ─── Phase 1.2: InkSight Transform API ────────────────────────────────────
+
+  describe('submitTransform', () => {
+    let inksightClient: RemarkableCloudClient;
+
+    beforeEach(() => {
+      inksightClient = new RemarkableCloudClient(undefined, INKSIGHT_CONFIG);
+    });
+
+    it('should submit a file with default preset and return job info', async () => {
+      const mockFileData = Buffer.from('mock rm binary data');
+      mockReadFile.mockResolvedValueOnce(mockFileData as any);
+
+      const mockResult = {
+        jobId: 'job-abc-123',
+        status: 'queued',
+        createdAt: '2026-02-18T20:00:00.000Z',
+      };
+      mockHttpClient.post.mockResolvedValueOnce({ data: mockResult });
+
+      const result = await inksightClient.submitTransform('/path/to/note.rm');
+
+      expect(result).toEqual(mockResult);
+      expect(mockHttpClient.post).toHaveBeenCalledWith(
+        'https://inksight-api.mtree.io/transform',
+        expect.any(FormData),
+        expect.objectContaining({
+          headers: { 'X-API-Key': 'test-api-key-abc123' },
+        })
+      );
+    });
+
+    it('should pass the specified preset to the API', async () => {
+      const mockFileData = Buffer.from('mock rm binary data');
+      mockReadFile.mockResolvedValueOnce(mockFileData as any);
+
+      mockHttpClient.post.mockResolvedValueOnce({
+        data: { jobId: 'job-xyz', status: 'queued', createdAt: '2026-02-18T20:00:00.000Z' },
+      });
+
+      await inksightClient.submitTransform('/path/to/note.rm', 'aggressive');
+
+      // Post should have been called — preset is embedded in the FormData body
+      expect(mockHttpClient.post).toHaveBeenCalledTimes(1);
+    });
+
+    it('should throw FILE_NOT_FOUND when the file cannot be read', async () => {
+      mockReadFile.mockRejectedValueOnce(new Error('ENOENT: no such file or directory'));
+
+      await expect(
+        inksightClient.submitTransform('/nonexistent/file.rm')
+      ).rejects.toMatchObject({ code: 'FILE_NOT_FOUND' });
+    });
+
+    it('should throw SUBMIT_FAILED on API error', async () => {
+      mockReadFile.mockResolvedValueOnce(Buffer.from('data') as any);
+
+      const axiosError = Object.assign(new Error('Internal Server Error'), {
+        response: { status: 500 },
+      });
+      Object.setPrototypeOf(axiosError, axios.AxiosError.prototype);
+      mockHttpClient.post.mockRejectedValueOnce(axiosError);
+
+      await expect(
+        inksightClient.submitTransform('/path/to/note.rm')
+      ).rejects.toMatchObject({ code: 'SUBMIT_FAILED', statusCode: 500 });
+    });
+
+    it('should throw NO_INKSIGHT_API_KEY when no API key is configured', async () => {
+      const clientWithoutKey = new RemarkableCloudClient();
+      await expect(
+        clientWithoutKey.submitTransform('/path/to/note.rm')
+      ).rejects.toMatchObject({ code: 'NO_INKSIGHT_API_KEY' });
+    });
+  });
+
+  describe('pollTransformStatus', () => {
+    let inksightClient: RemarkableCloudClient;
+
+    beforeEach(() => {
+      inksightClient = new RemarkableCloudClient(undefined, INKSIGHT_CONFIG);
+    });
+
+    it('should return status result for a queued job', async () => {
+      const mockStatus = {
+        jobId: 'job-abc-123',
+        status: 'queued',
+        progress: 0,
+      };
+      mockHttpClient.get.mockResolvedValueOnce({ data: mockStatus });
+
+      const result = await inksightClient.pollTransformStatus('job-abc-123');
+
+      expect(result).toEqual(mockStatus);
+      expect(mockHttpClient.get).toHaveBeenCalledWith(
+        'https://inksight-api.mtree.io/status/job-abc-123',
+        expect.objectContaining({
+          headers: { 'X-API-Key': 'test-api-key-abc123' },
+        })
+      );
+    });
+
+    it('should return completed result with outputPath', async () => {
+      const mockStatus = {
+        jobId: 'job-abc-123',
+        status: 'completed',
+        progress: 100,
+        outputPath: 'https://inksight-api.mtree.io/outputs/job-abc-123.md',
+      };
+      mockHttpClient.get.mockResolvedValueOnce({ data: mockStatus });
+
+      const result = await inksightClient.pollTransformStatus('job-abc-123');
+
+      expect(result.status).toBe('completed');
+      expect(result.outputPath).toBeDefined();
+    });
+
+    it('should throw POLL_FAILED on API error', async () => {
+      const axiosError = Object.assign(new Error('Not Found'), {
+        response: { status: 404 },
+      });
+      Object.setPrototypeOf(axiosError, axios.AxiosError.prototype);
+      mockHttpClient.get.mockRejectedValueOnce(axiosError);
+
+      await expect(
+        inksightClient.pollTransformStatus('bad-job-id')
+      ).rejects.toMatchObject({ code: 'POLL_FAILED', statusCode: 404 });
+    });
+
+    it('should throw NO_INKSIGHT_API_KEY when no API key is configured', async () => {
+      const clientWithoutKey = new RemarkableCloudClient();
+      await expect(
+        clientWithoutKey.pollTransformStatus('job-abc-123')
+      ).rejects.toMatchObject({ code: 'NO_INKSIGHT_API_KEY' });
+    });
+  });
+
+  describe('waitForTransform', () => {
+    let inksightClient: RemarkableCloudClient;
+
+    beforeEach(() => {
+      inksightClient = new RemarkableCloudClient(undefined, INKSIGHT_CONFIG);
+    });
+
+    it('should return immediately when job is already completed', async () => {
+      const completedStatus = {
+        jobId: 'job-done',
+        status: 'completed' as const,
+        progress: 100,
+        outputPath: 'https://inksight-api.mtree.io/outputs/job-done.md',
+      };
+      const pollSpy = vi
+        .spyOn(inksightClient, 'pollTransformStatus')
+        .mockResolvedValueOnce(completedStatus);
+
+      const result = await inksightClient.waitForTransform('job-done', {
+        pollIntervalMs: 0,
+      });
+
+      expect(result).toEqual(completedStatus);
+      expect(pollSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('should poll multiple times until completion', async () => {
+      const pollSpy = vi
+        .spyOn(inksightClient, 'pollTransformStatus')
+        .mockResolvedValueOnce({ jobId: 'job-slow', status: 'queued', progress: 0 })
+        .mockResolvedValueOnce({ jobId: 'job-slow', status: 'processing', progress: 50 })
+        .mockResolvedValueOnce({
+          jobId: 'job-slow',
+          status: 'completed',
+          progress: 100,
+          outputPath: '/output/job-slow.md',
+        });
+
+      const result = await inksightClient.waitForTransform('job-slow', {
+        pollIntervalMs: 0,
+        timeoutMs: 60_000,
+      });
+
+      expect(result.status).toBe('completed');
+      expect(pollSpy).toHaveBeenCalledTimes(3);
+    });
+
+    it('should throw TRANSFORM_FAILED when job status is failed', async () => {
+      vi.spyOn(inksightClient, 'pollTransformStatus').mockResolvedValueOnce({
+        jobId: 'job-fail',
+        status: 'failed',
+        error: 'Unrecognised file format',
+      });
+
+      await expect(
+        inksightClient.waitForTransform('job-fail', { pollIntervalMs: 0 })
+      ).rejects.toMatchObject({ code: 'TRANSFORM_FAILED' });
+    });
+
+    it('should throw TRANSFORM_TIMEOUT when timeout is exceeded', async () => {
+      // Always returns 'processing' so we never complete
+      vi.spyOn(inksightClient, 'pollTransformStatus').mockResolvedValue({
+        jobId: 'job-slow',
+        status: 'processing',
+        progress: 10,
+      });
+
+      await expect(
+        inksightClient.waitForTransform('job-slow', {
+          pollIntervalMs: 0,
+          // Tiny timeout: after first poll succeeds and we check elapsed, it will exceed
+          timeoutMs: 1,
+        })
+      ).rejects.toMatchObject({ code: 'TRANSFORM_TIMEOUT' });
+    });
+
+    it('should use custom poll interval and timeout', async () => {
+      const pollSpy = vi
+        .spyOn(inksightClient, 'pollTransformStatus')
+        .mockResolvedValueOnce({ jobId: 'job-custom', status: 'processing', progress: 80 })
+        .mockResolvedValueOnce({
+          jobId: 'job-custom',
+          status: 'completed',
+          progress: 100,
+          outputPath: '/output/job-custom.md',
+        });
+
+      const result = await inksightClient.waitForTransform('job-custom', {
+        pollIntervalMs: 0,
+        timeoutMs: 30_000,
+      });
+
+      expect(result.status).toBe('completed');
+      expect(pollSpy).toHaveBeenCalledTimes(2);
     });
   });
 });
