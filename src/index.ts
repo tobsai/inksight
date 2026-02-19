@@ -67,12 +67,8 @@ export type { RenderOptions, RenderResult } from './renderer/index.js';
 // CacheOptions from renderer (distinct from storage CacheOptions — use RendererCacheOptions alias)
 export type { CacheOptions as RendererCacheOptions } from './renderer/index.js';
 
-// Transformers
-export { BaseTransformer } from './transformers/base-transformer.js';
-export { TextRecognitionTransformer } from './transformers/text-recognition.js';
-// Note: TransformResult is exported from the AI module (Phase 3.1).
-// The transformer's TransformResult is accessible via BaseTransformer directly.
-export type { TransformerConfig } from './transformers/base-transformer.js';
+// Transformers — Phase 3 (legacy) + Phase 4 (core transformers)
+export * from './transformers/index.js';
 
 // Storage
 export { DocumentCache } from './storage/cache.js';

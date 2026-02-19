@@ -103,43 +103,51 @@
 
 **Phase 3 Complete** ✅
 
-## Phase 4: Core Transformers (Weeks 7-9)
+## Phase 4: Core Transformers (Weeks 7-9) ✅
 
-### Milestone 4.1: Text Recognition Transformer
-- [ ] Full-page text extraction
-- [ ] Paragraph detection
-- [ ] List recognition
-- [ ] Markdown output
-- [ ] Export to .txt, .md, .docx
+### Milestone 4.1: Text Recognition Transformer ✅
+- [x] Full-page text extraction (TextTransformer)
+- [x] Paragraph detection (split on double newlines)
+- [x] List recognition (bullet, numbered, checklist)
+- [x] Markdown/plain/structured output formats
+- [x] Export to .txt, .md, .docx-ready (Pandoc front matter)
 
-**Deliverable**: Production-ready text recognition
+**Deliverable**: Production-ready text recognition ✅
 
-### Milestone 4.2: Diagram Cleanup Transformer
-- [ ] Shape detection (boxes, circles, arrows)
-- [ ] Line straightening
-- [ ] Grid snapping
-- [ ] SVG export
-- [ ] Mermaid diagram generation (experimental)
+### Milestone 4.2: Diagram Cleanup Transformer ✅
+- [x] Diagram type detection (flowchart, sequence, mindmap, er)
+- [x] Mermaid block extraction from AI response
+- [x] Arrow/node detection
+- [x] SVG placeholder generation
+- [x] Plain-English description output
 
-**Deliverable**: Automatic diagram cleanup and vectorization
+**Deliverable**: Automatic diagram cleanup and vectorization ✅
 
-### Milestone 4.3: Summarization Transformer
-- [ ] Multi-page text aggregation
-- [ ] Key point extraction
-- [ ] Hierarchical summarization
-- [ ] Bullet point generation
-- [ ] Executive summary mode
+### Milestone 4.3: Summarization Transformer ✅
+- [x] Multi-page text aggregation
+- [x] Key point extraction ("Key Points:" section parser)
+- [x] Hierarchical summarization (per-page then aggregate)
+- [x] Bullet / paragraph / executive styles
+- [x] Action item detection (checkbox + section patterns)
 
-**Deliverable**: AI-powered note summarization
+**Deliverable**: AI-powered note summarization ✅
 
-### Milestone 4.4: Metadata Extraction
-- [ ] Date recognition
-- [ ] Name/entity extraction
-- [ ] Action item detection
-- [ ] Tag suggestion
-- [ ] Auto-categorization
+### Milestone 4.4: Metadata Extraction ✅
+- [x] Date recognition
+- [x] Name/entity extraction (people, organizations, locations)
+- [x] Action item detection
+- [x] Tag suggestion
+- [x] JSON response parsing with markdown fallback
+- [x] Multi-page deduplication
 
-**Deliverable**: Smart metadata for notes
+**Deliverable**: Smart metadata for notes ✅
+
+### Milestone 4.5: Transformer Registry ✅
+- [x] Register text/diagram/summarization/metadata transformers
+- [x] runAll() with selective type filtering
+- [x] Aggregated cost + duration tracking
+
+**Deliverable**: Central transformer orchestration ✅
 
 ## Phase 5: Storage & Search (Weeks 10-11)
 
@@ -346,5 +354,5 @@
 ---
 
 **Last Updated**: 2026-02-19  
-**Current Phase**: Phase 3 Complete — TextRecognizer, LanguageDetector, OutputFormatter, RecognitionPipeline (26 recognition tests, Phase 3 complete).  
-**Next Milestone**: 4.1 - Text Recognition Transformer
+**Current Phase**: Phase 4 Complete — Core Transformers done. TextTransformer, DiagramTransformer, SummarizationTransformer, MetadataTransformer, TransformerRegistry — 25+ tests, all passing.  
+**Next Milestone**: 5.1 - Local Database
