@@ -22,10 +22,10 @@ export type {
   WaitForTransformOptions,
 } from './cloud/types.js';
 
-// Device Access
+// Device Access (Phase 2.1: SSH layer)
 import { RemarkableSSHClient } from './device/ssh-client.js';
 export { RemarkableSSHClient } from './device/ssh-client.js';
-export type { SSHConnectionConfig, DeviceInfo } from './device/ssh-client.js';
+export type { SSHConnectionOptions, RemoteFile, DeviceInfo, DocumentChange } from './device/types.js';
 
 // Parser
 export { RMParser } from './parser/rm-parser.js';

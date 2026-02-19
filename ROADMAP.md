@@ -32,14 +32,17 @@
 
 ## Phase 2: Device Integration (Weeks 3-4)
 
-### Milestone 2.1: SSH Access Layer
-- [ ] SSH connection manager
-- [ ] File system browser
-- [ ] Document downloader via SSH
-- [ ] Connection pooling
-- [ ] Auto-reconnect on disconnect
+### Milestone 2.1: SSH Access Layer ✅
+- [x] SSH connection manager with 3-attempt exponential backoff retry
+- [x] File system browser (`listFiles`, `listDocumentIds`)
+- [x] Document downloader via SSH/SFTP (`downloadFile`, `downloadDocument`)
+- [x] Keep-alive configuration (keepAliveIntervalMs)
+- [x] Auto-reconnect via retry logic in `connect()`
+- [x] `executeCommand` + `getDeviceInfo` for device inspection
+- [x] `watchForChanges` polling for real-time change detection
+- [x] 35 unit tests, all passing (101 total)
 
-**Deliverable**: Reliable SSH client for device access
+**Deliverable**: Reliable SSH client for device access ✅
 
 ### Milestone 2.2: File Monitoring
 - [ ] Real-time file change detection
@@ -329,5 +332,5 @@
 ---
 
 **Last Updated**: 2026-02-18  
-**Current Phase**: Phase 1 Complete  
-**Next Milestone**: 2.1 - SSH Access Layer
+**Current Phase**: Phase 2 - In Progress, 2.1 complete  
+**Next Milestone**: 2.2 - File Monitoring (inotifywait-based real-time detection)
