@@ -199,7 +199,7 @@ describe('Integration: Storage Roundtrip (in-memory SQLite)', () => {
     const doc = makeStoredDoc();
     db.upsertDocument(doc);
     const result = makeTransformResult();
-    db.upsertTransformResult(result);
+    db.saveTransformResult(result);
     const retrieved = db.getTransformResult(doc.id, 0, 'text');
     expect(retrieved).not.toBeNull();
     expect(retrieved!.providerUsed).toBe('openai');
@@ -243,7 +243,7 @@ describe('Integration: Storage Roundtrip (in-memory SQLite)', () => {
       documentId: 'e2e-doc-1',
       output: JSON.stringify({ text: 'deep learning transformer architecture attention mechanism' }),
     });
-    db.upsertTransformResult(result);
+    db.saveTransformResult(result);
 
     searchIndex.indexDocument({
       documentId: 'e2e-doc-1',
