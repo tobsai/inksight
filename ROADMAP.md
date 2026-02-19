@@ -89,14 +89,19 @@
 
 **Deliverable**: High-quality rendering of handwriting to images ✅
 
-### Milestone 3.3: Basic Text Recognition
-- [ ] Send rendered pages to Vision AI
-- [ ] Parse OCR responses
-- [ ] Confidence scoring
-- [ ] Word bounding boxes
-- [ ] Multi-language support
+### Milestone 3.3: Basic Text Recognition ✅
+- [x] `TextRecognizer` — render page → AI → `RecognizedPage` with confidence + word count
+- [x] `DiagramAnalyzer` — diagram-type detection (flowchart / mindmap / sketch / unknown)
+- [x] `DocumentProcessor` — high-level pipeline: text, diagram, summary, auto modes
+- [x] Action item extraction (Markdown checklist parser)
+- [x] Metadata extraction (dates, people, topics via JSON response parser)
+- [x] Parallel page processing with configurable concurrency
+- [x] Multi-language support via language hint option
+- [x] 20+ unit tests, all mocked, all passing
 
-**Deliverable**: Working text recognition for handwritten notes
+**Deliverable**: Complete OCR pipeline — render → AI → structured results ✅
+
+**Phase 3 Complete** ✅
 
 ## Phase 4: Core Transformers (Weeks 7-9)
 
@@ -341,5 +346,5 @@
 ---
 
 **Last Updated**: 2026-02-19  
-**Current Phase**: Phase 3.2 Complete — Image Rendering (RMParser, PageRenderer, RenderCache, DocumentRenderer, 37 tests, 302 total).  
-**Next Milestone**: 3.3 - Basic Text Recognition
+**Current Phase**: Phase 3 Complete — TextRecognizer, LanguageDetector, OutputFormatter, RecognitionPipeline (26 recognition tests, Phase 3 complete).  
+**Next Milestone**: 4.1 - Text Recognition Transformer

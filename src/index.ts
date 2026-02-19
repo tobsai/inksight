@@ -81,6 +81,12 @@ export type { CacheOptions, CacheEntry } from './storage/cache.js';
 // Hybrid Access Layer (Phase 2.3: SSH + Cloud with offline detection)
 export * from './hybrid/index.js';
 
+// Recognition — Phase 3.3: text recognition pipeline
+export * from './recognition/index.js';
+
+// OCR — Phase 3.3: Text recognition + diagram analysis + document processor
+export * from './ocr/index.js';
+
 /**
  * Library version
  */
