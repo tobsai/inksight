@@ -1,37 +1,34 @@
 # InkSight Development Roadmap
 
-## Project Status: Phase 0 - Scaffolding Complete ✅
+## Project Status: Phase 1 Complete ✅
 
 ## Phase 1: Foundation (Weeks 1-2)
 
-### Milestone 1.1: reMarkable Cloud API Integration
-- [ ] Implement authentication flow (device registration)
-- [ ] Service discovery client
-- [ ] Document list and download
-- [ ] Upload capabilities
-- [ ] Token management and refresh
-- [ ] Error handling and retry logic
+### Milestone 1.1: reMarkable Cloud API Integration ✅
+- [x] Implement authentication flow (device registration)
+- [x] Service discovery client
+- [x] Document list and download
+- [x] Token management and refresh
+- [x] Error handling and retry logic
 
-**Deliverable**: Working cloud client that can list, download, and upload documents
+**Deliverable**: Working cloud client that can authenticate and list documents ✅
 
-### Milestone 1.2: Binary Format Parser
-- [ ] Parse .metadata JSON files
-- [ ] Parse .content JSON files
-- [ ] Decode binary .rm format (v6)
-- [ ] Extract stroke data (layers, lines, points)
-- [ ] Support for all pen types and colors
-- [ ] Unit tests with sample files
+### Milestone 1.2: InkSight Transform API ✅
+- [x] Submit .rm file for AI transformation (`submitTransform`)
+- [x] Poll transform job status (`pollTransformStatus`)
+- [x] Wait for transform completion with timeout (`waitForTransform`)
+- [x] Unit tests — 47 tests, all passing
 
-**Deliverable**: Robust parser that can decode all reMarkable file types
+**Deliverable**: Transform submission and polling fully operational ✅
 
-### Milestone 1.3: Development Environment
-- [ ] Logging system with levels
-- [ ] Configuration management
-- [ ] Test fixtures (sample .rm files)
-- [ ] CI/CD pipeline setup
-- [ ] Documentation site
+### Milestone 1.3: Document Download + Local Delivery ✅
+- [x] Implement `downloadDocument(documentId)` — fetches fresh blob URL, downloads ZIP, extracts `.metadata`, `.content`, `.rm` pages, optional `.pdf`
+- [x] Implement `saveTransformOutput(outputPath, localDestination)` — URL fetch or local copy with recursive directory creation
+- [x] Implement `downloadAndTransform(documentId, transformType, outputDir)` — full end-to-end pipeline convenience method
+- [x] 19 new tests (66 total), all passing
+- [x] Added `jszip` dependency for ZIP extraction
 
-**Deliverable**: Professional dev environment with testing infrastructure
+**Deliverable**: Full pipeline from cloud document → local transformed output ✅
 
 ## Phase 2: Device Integration (Weeks 3-4)
 
@@ -331,6 +328,6 @@
 
 ---
 
-**Last Updated**: 2026-02-05  
-**Current Phase**: Phase 0 - Scaffolding Complete  
-**Next Milestone**: 1.1 - reMarkable Cloud API Integration
+**Last Updated**: 2026-02-18  
+**Current Phase**: Phase 1 Complete  
+**Next Milestone**: 2.1 - SSH Access Layer

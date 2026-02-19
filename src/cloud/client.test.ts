@@ -8,14 +8,20 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import axios from 'axios';
 import { RemarkableCloudClient, RemarkableCloudError } from './client.js';
-import { writeFile, readFile } from 'fs/promises';
+import { writeFile, readFile, mkdir, copyFile, rm } from 'fs/promises';
+import JSZip from 'jszip';
 
 vi.mock('axios');
 vi.mock('fs/promises');
+vi.mock('jszip');
 
 const mockAxios = vi.mocked(axios);
 const mockWriteFile = vi.mocked(writeFile);
 const mockReadFile = vi.mocked(readFile);
+const mockMkdir = vi.mocked(mkdir);
+const mockCopyFile = vi.mocked(copyFile);
+const mockRm = vi.mocked(rm);
+const MockJSZip = vi.mocked(JSZip, true);
 
 // Shared InkSight config used across transform tests
 const INKSIGHT_CONFIG = {
@@ -635,6 +641,493 @@ describe('RemarkableCloudClient', () => {
 
       expect(result.status).toBe('completed');
       expect(pollSpy).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  // ─── Phase 1.3: Document Download + Local Delivery ────────────────────────
+
+  /** Helper: build a mock JSZip file object that async() resolves correctly */
+  function makeZipFile(content: string | Uint8Array) {
+    return {
+      async: vi.fn().mockImplementation((type: string) => {
+        if (type === 'text') return Promise.resolve(typeof content === 'string' ? content : '');
+        if (type === 'uint8array')
+          return Promise.resolve(content instanceof Uint8Array ? content : new Uint8Array());
+        return Promise.resolve(content);
+      }),
+    };
+  }
+
+  /** Sample metadata and content fixtures */
+  const MOCK_DOC_ID = 'doc-uuid-1234';
+  const MOCK_BLOB_URL = 'https://blob.storage.remarkable.com/signed/doc-uuid-1234.zip';
+
+  const MOCK_METADATA = {
+    deleted: false,
+    lastModified: '2026-02-18T00:00:00Z',
+    lastOpened: '2026-02-18T00:00:00Z',
+    lastOpenedPage: 0,
+    metadatamodified: false,
+    modified: false,
+    parent: '',
+    pinned: false,
+    synced: true,
+    type: 'DocumentType',
+    version: 3,
+    visibleName: 'My Note',
+  };
+
+  const MOCK_CONTENT = {
+    coverPageNumber: 0,
+    dummyDocument: false,
+    extraMetadata: {},
+    fileType: 'notebook',
+    fontName: '',
+    formatVersion: 2,
+    lineHeight: -1,
+    margins: 100,
+    orientation: 'portrait',
+    pageCount: 1,
+    pages: ['page-uuid-abc'],
+    pageTags: [],
+    textAlignment: 'left',
+    textScale: 1,
+  };
+
+  describe('downloadDocument', () => {
+    let authenticatedClient: RemarkableCloudClient;
+
+    beforeEach(() => {
+      authenticatedClient = new RemarkableCloudClient(
+        { deviceToken: 'dev-tok', userToken: 'usr-tok' },
+        INKSIGHT_CONFIG
+      );
+    });
+
+    it('should throw NOT_AUTHENTICATED when not authenticated', async () => {
+      await expect(client.downloadDocument(MOCK_DOC_ID)).rejects.toMatchObject({
+        code: 'NOT_AUTHENTICATED',
+      });
+    });
+
+    it('should download and parse a document ZIP successfully', async () => {
+      // discoverEndpoints
+      mockHttpClient.get.mockResolvedValueOnce({
+        data: { Host: 'storage.remarkable.com', Status: 'OK' },
+      });
+
+      // POST download URL endpoint
+      mockHttpClient.post.mockResolvedValueOnce({
+        data: [{ ID: MOCK_DOC_ID, BlobURL: MOCK_BLOB_URL }],
+      });
+
+      // GET blob ZIP (arraybuffer)
+      mockHttpClient.get.mockResolvedValueOnce({
+        data: new ArrayBuffer(8),
+      });
+
+      // Mock JSZip
+      const mockZip = {
+        file: vi.fn().mockImplementation((name: string) => {
+          if (name === `${MOCK_DOC_ID}.metadata`)
+            return makeZipFile(JSON.stringify(MOCK_METADATA));
+          if (name === `${MOCK_DOC_ID}.content`)
+            return makeZipFile(JSON.stringify(MOCK_CONTENT));
+          if (name === `${MOCK_DOC_ID}/page-uuid-abc.rm`)
+            return makeZipFile(new Uint8Array([1, 2, 3]));
+          return null;
+        }),
+      };
+      MockJSZip.loadAsync = vi.fn().mockResolvedValue(mockZip);
+
+      const result = await authenticatedClient.downloadDocument(MOCK_DOC_ID);
+
+      expect(result.metadata.visibleName).toBe('My Note');
+      expect(result.content.pageCount).toBe(1);
+      expect(result.pages).toHaveLength(1);
+      expect(result.pages[0]).toEqual(new Uint8Array([1, 2, 3]));
+      expect(result.pdfData).toBeUndefined();
+    });
+
+    it('should extract optional PDF when present in ZIP', async () => {
+      mockHttpClient.get.mockResolvedValueOnce({
+        data: { Host: 'storage.remarkable.com', Status: 'OK' },
+      });
+      mockHttpClient.post.mockResolvedValueOnce({
+        data: [{ ID: MOCK_DOC_ID, BlobURL: MOCK_BLOB_URL }],
+      });
+      mockHttpClient.get.mockResolvedValueOnce({ data: new ArrayBuffer(8) });
+
+      const mockZip = {
+        file: vi.fn().mockImplementation((name: string) => {
+          if (name === `${MOCK_DOC_ID}.metadata`)
+            return makeZipFile(JSON.stringify(MOCK_METADATA));
+          if (name === `${MOCK_DOC_ID}.content`)
+            return makeZipFile(JSON.stringify(MOCK_CONTENT));
+          if (name === `${MOCK_DOC_ID}.pdf`)
+            return makeZipFile(new Uint8Array([37, 80, 68, 70])); // %PDF magic bytes
+          return null;
+        }),
+      };
+      MockJSZip.loadAsync = vi.fn().mockResolvedValue(mockZip);
+
+      const result = await authenticatedClient.downloadDocument(MOCK_DOC_ID);
+
+      expect(result.pdfData).toBeDefined();
+      expect(result.pdfData![0]).toBe(37); // %
+    });
+
+    it('should fall back to flat page naming (pageId.rm without prefix)', async () => {
+      mockHttpClient.get.mockResolvedValueOnce({
+        data: { Host: 'storage.remarkable.com', Status: 'OK' },
+      });
+      mockHttpClient.post.mockResolvedValueOnce({
+        data: [{ ID: MOCK_DOC_ID, BlobURL: MOCK_BLOB_URL }],
+      });
+      mockHttpClient.get.mockResolvedValueOnce({ data: new ArrayBuffer(8) });
+
+      const mockZip = {
+        file: vi.fn().mockImplementation((name: string) => {
+          if (name === `${MOCK_DOC_ID}.metadata`)
+            return makeZipFile(JSON.stringify(MOCK_METADATA));
+          if (name === `${MOCK_DOC_ID}.content`)
+            return makeZipFile(JSON.stringify(MOCK_CONTENT));
+          // Only flat naming available
+          if (name === 'page-uuid-abc.rm')
+            return makeZipFile(new Uint8Array([9, 8, 7]));
+          return null;
+        }),
+      };
+      MockJSZip.loadAsync = vi.fn().mockResolvedValue(mockZip);
+
+      const result = await authenticatedClient.downloadDocument(MOCK_DOC_ID);
+      expect(result.pages).toHaveLength(1);
+      expect(result.pages[0]).toEqual(new Uint8Array([9, 8, 7]));
+    });
+
+    it('should throw NO_BLOB_URL when response has no BlobURL', async () => {
+      mockHttpClient.get.mockResolvedValueOnce({
+        data: { Host: 'storage.remarkable.com', Status: 'OK' },
+      });
+      mockHttpClient.post.mockResolvedValueOnce({
+        data: [{ ID: MOCK_DOC_ID }], // no BlobURL
+      });
+
+      await expect(authenticatedClient.downloadDocument(MOCK_DOC_ID)).rejects.toMatchObject({
+        code: 'NO_BLOB_URL',
+      });
+    });
+
+    it('should throw DOWNLOAD_FAILED when POST to blob URL endpoint fails', async () => {
+      mockHttpClient.get.mockResolvedValueOnce({
+        data: { Host: 'storage.remarkable.com', Status: 'OK' },
+      });
+
+      const axiosError = Object.assign(new Error('Server Error'), {
+        response: { status: 500 },
+      });
+      Object.setPrototypeOf(axiosError, axios.AxiosError.prototype);
+      mockHttpClient.post.mockRejectedValueOnce(axiosError);
+
+      await expect(authenticatedClient.downloadDocument(MOCK_DOC_ID)).rejects.toMatchObject({
+        code: 'DOWNLOAD_FAILED',
+        statusCode: 500,
+      });
+    });
+
+    it('should throw DOWNLOAD_FAILED when ZIP download fails', async () => {
+      mockHttpClient.get.mockResolvedValueOnce({
+        data: { Host: 'storage.remarkable.com', Status: 'OK' },
+      });
+      mockHttpClient.post.mockResolvedValueOnce({
+        data: [{ ID: MOCK_DOC_ID, BlobURL: MOCK_BLOB_URL }],
+      });
+
+      const axiosError = Object.assign(new Error('Forbidden'), {
+        response: { status: 403 },
+      });
+      Object.setPrototypeOf(axiosError, axios.AxiosError.prototype);
+      mockHttpClient.get.mockRejectedValueOnce(axiosError);
+
+      await expect(authenticatedClient.downloadDocument(MOCK_DOC_ID)).rejects.toMatchObject({
+        code: 'DOWNLOAD_FAILED',
+        statusCode: 403,
+      });
+    });
+
+    it('should throw INVALID_DOCUMENT when .metadata file is missing from ZIP', async () => {
+      mockHttpClient.get.mockResolvedValueOnce({
+        data: { Host: 'storage.remarkable.com', Status: 'OK' },
+      });
+      mockHttpClient.post.mockResolvedValueOnce({
+        data: [{ ID: MOCK_DOC_ID, BlobURL: MOCK_BLOB_URL }],
+      });
+      mockHttpClient.get.mockResolvedValueOnce({ data: new ArrayBuffer(8) });
+
+      const mockZip = { file: vi.fn().mockReturnValue(null) };
+      MockJSZip.loadAsync = vi.fn().mockResolvedValue(mockZip);
+
+      await expect(authenticatedClient.downloadDocument(MOCK_DOC_ID)).rejects.toMatchObject({
+        code: 'INVALID_DOCUMENT',
+      });
+    });
+
+    it('should throw INVALID_DOCUMENT when .content file is missing from ZIP', async () => {
+      mockHttpClient.get.mockResolvedValueOnce({
+        data: { Host: 'storage.remarkable.com', Status: 'OK' },
+      });
+      mockHttpClient.post.mockResolvedValueOnce({
+        data: [{ ID: MOCK_DOC_ID, BlobURL: MOCK_BLOB_URL }],
+      });
+      mockHttpClient.get.mockResolvedValueOnce({ data: new ArrayBuffer(8) });
+
+      const mockZip = {
+        file: vi.fn().mockImplementation((name: string) => {
+          if (name === `${MOCK_DOC_ID}.metadata`)
+            return makeZipFile(JSON.stringify(MOCK_METADATA));
+          return null; // .content missing
+        }),
+      };
+      MockJSZip.loadAsync = vi.fn().mockResolvedValue(mockZip);
+
+      await expect(authenticatedClient.downloadDocument(MOCK_DOC_ID)).rejects.toMatchObject({
+        code: 'INVALID_DOCUMENT',
+      });
+    });
+  });
+
+  describe('saveTransformOutput', () => {
+    let inksightClient: RemarkableCloudClient;
+
+    beforeEach(() => {
+      inksightClient = new RemarkableCloudClient(undefined, INKSIGHT_CONFIG);
+      mockMkdir.mockResolvedValue(undefined as any);
+    });
+
+    it('should fetch from URL and write to local destination', async () => {
+      const mockContent = '# Transformed Note\nSome text here.';
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        arrayBuffer: () => Promise.resolve(Buffer.from(mockContent).buffer),
+      });
+      vi.stubGlobal('fetch', mockFetch);
+
+      mockWriteFile.mockResolvedValue(undefined);
+
+      await inksightClient.saveTransformOutput(
+        'https://inksight-api.mtree.io/outputs/job-123.md',
+        '/output/dir/result.md'
+      );
+
+      expect(mockMkdir).toHaveBeenCalledWith('/output/dir', { recursive: true });
+      expect(mockFetch).toHaveBeenCalledWith('https://inksight-api.mtree.io/outputs/job-123.md');
+      expect(mockWriteFile).toHaveBeenCalledWith(
+        '/output/dir/result.md',
+        expect.any(Buffer)
+      );
+    });
+
+    it('should copy a local file when outputPath is not a URL', async () => {
+      mockCopyFile.mockResolvedValue(undefined);
+
+      await inksightClient.saveTransformOutput(
+        '/tmp/inksight-job-123.md',
+        '/output/dir/result.md'
+      );
+
+      expect(mockMkdir).toHaveBeenCalledWith('/output/dir', { recursive: true });
+      expect(mockCopyFile).toHaveBeenCalledWith('/tmp/inksight-job-123.md', '/output/dir/result.md');
+    });
+
+    it('should throw FETCH_FAILED when remote URL returns non-OK status', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 404,
+      });
+      vi.stubGlobal('fetch', mockFetch);
+
+      await expect(
+        inksightClient.saveTransformOutput(
+          'https://inksight-api.mtree.io/outputs/missing.md',
+          '/output/result.md'
+        )
+      ).rejects.toMatchObject({ code: 'FETCH_FAILED', statusCode: 404 });
+    });
+
+    it('should create nested output directories recursively', async () => {
+      mockCopyFile.mockResolvedValue(undefined);
+
+      await inksightClient.saveTransformOutput(
+        '/tmp/job.md',
+        '/deeply/nested/output/dir/result.md'
+      );
+
+      expect(mockMkdir).toHaveBeenCalledWith('/deeply/nested/output/dir', { recursive: true });
+    });
+  });
+
+  describe('downloadAndTransform', () => {
+    let inksightClient: RemarkableCloudClient;
+
+    beforeEach(() => {
+      inksightClient = new RemarkableCloudClient(
+        { deviceToken: 'dev-tok', userToken: 'usr-tok' },
+        INKSIGHT_CONFIG
+      );
+      mockMkdir.mockResolvedValue(undefined as any);
+      mockWriteFile.mockResolvedValue(undefined);
+      mockRm.mockResolvedValue(undefined);
+    });
+
+    it('should run the full pipeline and return document + output path', async () => {
+      // Stub downloadDocument
+      const mockDoc = {
+        metadata: MOCK_METADATA,
+        content: MOCK_CONTENT,
+        pages: [new Uint8Array([1, 2, 3])],
+      };
+      vi.spyOn(inksightClient, 'downloadDocument').mockResolvedValue(mockDoc as any);
+
+      // Stub submitTransform
+      vi.spyOn(inksightClient, 'submitTransform').mockResolvedValue({
+        jobId: 'job-pipeline-1',
+        status: 'queued',
+        createdAt: '2026-02-18T20:00:00Z',
+      });
+
+      // Stub waitForTransform
+      vi.spyOn(inksightClient, 'waitForTransform').mockResolvedValue({
+        jobId: 'job-pipeline-1',
+        status: 'completed',
+        progress: 100,
+        outputPath: 'https://inksight-api.mtree.io/outputs/job-pipeline-1.md',
+      });
+
+      // Stub saveTransformOutput
+      vi.spyOn(inksightClient, 'saveTransformOutput').mockResolvedValue(undefined);
+
+      const result = await inksightClient.downloadAndTransform(
+        MOCK_DOC_ID,
+        'text',
+        '/output/dir'
+      );
+
+      expect(result.document).toBe(mockDoc);
+      expect(result.outputPath).toBe(`/output/dir/${MOCK_DOC_ID}-text.md`);
+    });
+
+    it('should pass correct preset for each transform type', async () => {
+      const mockDoc = {
+        metadata: MOCK_METADATA,
+        content: MOCK_CONTENT,
+        pages: [new Uint8Array([1])],
+      };
+      vi.spyOn(inksightClient, 'downloadDocument').mockResolvedValue(mockDoc as any);
+      const submitSpy = vi.spyOn(inksightClient, 'submitTransform').mockResolvedValue({
+        jobId: 'job-2',
+        status: 'queued',
+        createdAt: '2026-02-18T20:00:00Z',
+      });
+      vi.spyOn(inksightClient, 'waitForTransform').mockResolvedValue({
+        jobId: 'job-2',
+        status: 'completed',
+        outputPath: '/tmp/out.md',
+      });
+      vi.spyOn(inksightClient, 'saveTransformOutput').mockResolvedValue(undefined);
+
+      await inksightClient.downloadAndTransform(MOCK_DOC_ID, 'summary', '/out');
+
+      expect(submitSpy).toHaveBeenCalledWith(expect.any(String), 'aggressive');
+    });
+
+    it('should throw NO_PAGES when document has no pages', async () => {
+      const mockDoc = {
+        metadata: MOCK_METADATA,
+        content: MOCK_CONTENT,
+        pages: [], // empty
+      };
+      vi.spyOn(inksightClient, 'downloadDocument').mockResolvedValue(mockDoc as any);
+
+      await expect(
+        inksightClient.downloadAndTransform(MOCK_DOC_ID, 'text', '/out')
+      ).rejects.toMatchObject({ code: 'NO_PAGES' });
+    });
+
+    it('should clean up temp file even when transform fails', async () => {
+      const mockDoc = {
+        metadata: MOCK_METADATA,
+        content: MOCK_CONTENT,
+        pages: [new Uint8Array([1])],
+      };
+      vi.spyOn(inksightClient, 'downloadDocument').mockResolvedValue(mockDoc as any);
+      vi.spyOn(inksightClient, 'submitTransform').mockResolvedValue({
+        jobId: 'job-fail',
+        status: 'queued',
+        createdAt: '2026-02-18T20:00:00Z',
+      });
+      vi.spyOn(inksightClient, 'waitForTransform').mockRejectedValue(
+        new RemarkableCloudError('Job failed', 'TRANSFORM_FAILED')
+      );
+
+      await expect(
+        inksightClient.downloadAndTransform(MOCK_DOC_ID, 'text', '/out')
+      ).rejects.toMatchObject({ code: 'TRANSFORM_FAILED' });
+
+      // Cleanup should still have been called
+      expect(mockRm).toHaveBeenCalledWith(expect.stringContaining('inksight-'), { force: true });
+    });
+
+    it('should throw NO_OUTPUT_PATH when transform completes without outputPath', async () => {
+      const mockDoc = {
+        metadata: MOCK_METADATA,
+        content: MOCK_CONTENT,
+        pages: [new Uint8Array([1])],
+      };
+      vi.spyOn(inksightClient, 'downloadDocument').mockResolvedValue(mockDoc as any);
+      vi.spyOn(inksightClient, 'submitTransform').mockResolvedValue({
+        jobId: 'job-3',
+        status: 'queued',
+        createdAt: '2026-02-18T20:00:00Z',
+      });
+      vi.spyOn(inksightClient, 'waitForTransform').mockResolvedValue({
+        jobId: 'job-3',
+        status: 'completed',
+        progress: 100,
+        // no outputPath
+      });
+
+      await expect(
+        inksightClient.downloadAndTransform(MOCK_DOC_ID, 'text', '/out')
+      ).rejects.toMatchObject({ code: 'NO_OUTPUT_PATH' });
+    });
+
+    it('should write the first page to temp file before submitting', async () => {
+      const pageData = new Uint8Array([10, 20, 30]);
+      const mockDoc = {
+        metadata: MOCK_METADATA,
+        content: MOCK_CONTENT,
+        pages: [pageData],
+      };
+      vi.spyOn(inksightClient, 'downloadDocument').mockResolvedValue(mockDoc as any);
+      vi.spyOn(inksightClient, 'submitTransform').mockResolvedValue({
+        jobId: 'job-4',
+        status: 'queued',
+        createdAt: '2026-02-18T20:00:00Z',
+      });
+      vi.spyOn(inksightClient, 'waitForTransform').mockResolvedValue({
+        jobId: 'job-4',
+        status: 'completed',
+        outputPath: '/tmp/out.md',
+      });
+      vi.spyOn(inksightClient, 'saveTransformOutput').mockResolvedValue(undefined);
+
+      await inksightClient.downloadAndTransform(MOCK_DOC_ID, 'text', '/out');
+
+      expect(mockWriteFile).toHaveBeenCalledWith(
+        expect.stringContaining('inksight-'),
+        pageData
+      );
     });
   });
 });

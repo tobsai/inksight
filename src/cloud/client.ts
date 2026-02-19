@@ -12,14 +12,18 @@
  */
 
 import axios, { AxiosInstance, AxiosError } from 'axios';
-import { readFile, writeFile } from 'fs/promises';
+import { readFile, writeFile, mkdir, copyFile, rm } from 'fs/promises';
 import { randomUUID } from 'crypto';
-import { basename } from 'node:path';
+import { basename, join, dirname } from 'node:path';
+import { tmpdir } from 'os';
+import JSZip from 'jszip';
 import type {
   RemarkableAuthTokens,
   RemarkableDocument,
   RemarkableServiceEndpoints,
   DownloadedDocument,
+  DocumentMetadata,
+  DocumentContent,
   InkSightConfig,
   TransformPreset,
   TransformSubmitResult,
@@ -275,13 +279,226 @@ export class RemarkableCloudClient {
   }
 
   /**
-   * Download a complete document including all files
+   * Download a complete document including all files.
+   *
+   * Fetches a fresh blob URL from the reMarkable storage API, downloads the
+   * ZIP archive, and extracts .metadata, .content, .rm pages, and an optional
+   * .pdf into a structured `DownloadedDocument` object.
+   *
+   * @param documentId  UUID of the document to download
    */
   async downloadDocument(documentId: string): Promise<DownloadedDocument> {
-    throw new Error('Not implemented - Phase 1.1');
-    // TODO: Implement document download
-    // Download .metadata, .content, .rm files
-    // Return structured document
+    if (!this.userToken) {
+      throw new RemarkableCloudError(
+        'Not authenticated. Call authenticate() first.',
+        'NOT_AUTHENTICATED'
+      );
+    }
+
+    if (!this.endpoints) {
+      await this.discoverEndpoints();
+    }
+
+    // ── Step 1: Get a fresh blob URL from the storage API ──────────────────
+    let blobUrl: string;
+    try {
+      const response = await this.httpClient.post(
+        `https://${this.endpoints!.host}/document-storage/json/2/docs/download?withBlob=true`,
+        [{ ID: documentId, Version: 1 }],
+        {
+          headers: {
+            Authorization: `Bearer ${this.userToken}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      const results = response.data as Array<{ ID: string; BlobURL?: string }>;
+      const docResult = results.find(r => r.ID === documentId);
+
+      if (!docResult?.BlobURL) {
+        throw new RemarkableCloudError(
+          'No blob URL returned for document',
+          'NO_BLOB_URL'
+        );
+      }
+
+      blobUrl = docResult.BlobURL;
+    } catch (error) {
+      if (error instanceof RemarkableCloudError) throw error;
+      if (error instanceof AxiosError) {
+        throw new RemarkableCloudError(
+          `Failed to get document blob URL: ${error.message}`,
+          'DOWNLOAD_FAILED',
+          error.response?.status
+        );
+      }
+      throw new RemarkableCloudError('Failed to get document blob URL', 'DOWNLOAD_FAILED');
+    }
+
+    // ── Step 2: Download the ZIP blob ───────────────────────────────────────
+    let zipBuffer: Buffer;
+    try {
+      const response = await this.httpClient.get(blobUrl, {
+        responseType: 'arraybuffer',
+      });
+      zipBuffer = Buffer.from(response.data as ArrayBuffer);
+    } catch (error) {
+      if (error instanceof AxiosError) {
+        throw new RemarkableCloudError(
+          `Failed to download document blob: ${error.message}`,
+          'DOWNLOAD_FAILED',
+          error.response?.status
+        );
+      }
+      throw new RemarkableCloudError('Failed to download document blob', 'DOWNLOAD_FAILED');
+    }
+
+    // ── Step 3: Parse the ZIP ───────────────────────────────────────────────
+    try {
+      const zip = await JSZip.loadAsync(zipBuffer);
+
+      // .metadata
+      const metadataFile = zip.file(`${documentId}.metadata`);
+      if (!metadataFile) {
+        throw new RemarkableCloudError(
+          'Document ZIP missing .metadata file',
+          'INVALID_DOCUMENT'
+        );
+      }
+      const metadata: DocumentMetadata = JSON.parse(await metadataFile.async('text'));
+
+      // .content
+      const contentFile = zip.file(`${documentId}.content`);
+      if (!contentFile) {
+        throw new RemarkableCloudError(
+          'Document ZIP missing .content file',
+          'INVALID_DOCUMENT'
+        );
+      }
+      const content: DocumentContent = JSON.parse(await contentFile.async('text'));
+
+      // .rm pages — two possible naming conventions
+      const pages: Uint8Array[] = [];
+      for (const pageId of content.pages) {
+        const pageFile =
+          zip.file(`${documentId}/${pageId}.rm`) ??
+          zip.file(`${pageId}.rm`);
+        if (pageFile) {
+          pages.push(await pageFile.async('uint8array'));
+        }
+      }
+
+      // Optional .pdf
+      let pdfData: Uint8Array | undefined;
+      const pdfFile = zip.file(`${documentId}.pdf`);
+      if (pdfFile) {
+        pdfData = await pdfFile.async('uint8array');
+      }
+
+      return { metadata, content, pages, pdfData };
+    } catch (error) {
+      if (error instanceof RemarkableCloudError) throw error;
+      throw new RemarkableCloudError(
+        `Failed to parse document ZIP: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        'PARSE_FAILED'
+      );
+    }
+  }
+
+  /**
+   * Save the output of a completed transform job to a local file.
+   *
+   * If `outputPath` is an HTTP(S) URL the content is fetched; otherwise it is
+   * treated as a local file path and copied. Parent directories are created
+   * automatically.
+   *
+   * @param outputPath        URL or local path to the transformed output file
+   * @param localDestination  Absolute path where the file should be saved
+   */
+  async saveTransformOutput(outputPath: string, localDestination: string): Promise<void> {
+    // Ensure parent directories exist
+    await mkdir(dirname(localDestination), { recursive: true });
+
+    if (outputPath.startsWith('http://') || outputPath.startsWith('https://')) {
+      // Fetch from remote URL
+      const response = await fetch(outputPath);
+      if (!response.ok) {
+        throw new RemarkableCloudError(
+          `Failed to fetch transform output: HTTP ${response.status}`,
+          'FETCH_FAILED',
+          response.status
+        );
+      }
+      const buffer = Buffer.from(await response.arrayBuffer());
+      await writeFile(localDestination, buffer);
+    } else {
+      // Copy local file
+      await copyFile(outputPath, localDestination);
+    }
+  }
+
+  /**
+   * Full-pipeline convenience method: download a document, submit its first
+   * page for AI transformation, wait for completion, and save the output.
+   *
+   * @param documentId    UUID of the reMarkable document
+   * @param transformType Desired output type ('text' | 'diagram' | 'summary')
+   * @param outputDir     Directory where the output file will be saved
+   * @returns             The downloaded document and the final local output path
+   */
+  async downloadAndTransform(
+    documentId: string,
+    transformType: 'text' | 'diagram' | 'summary',
+    outputDir: string
+  ): Promise<{ document: DownloadedDocument; outputPath: string }> {
+    // 1. Download document
+    const document = await this.downloadDocument(documentId);
+
+    if (document.pages.length === 0) {
+      throw new RemarkableCloudError(
+        'Document has no pages to transform',
+        'NO_PAGES'
+      );
+    }
+
+    // 2. Write first page to a temp file
+    const tempFilePath = join(tmpdir(), `inksight-${documentId}-${Date.now()}.rm`);
+
+    try {
+      await writeFile(tempFilePath, document.pages[0]);
+
+      // 3. Map transform type to a processing preset and submit
+      const presetMap: Record<string, TransformPreset> = {
+        text: 'medium',
+        diagram: 'medium',
+        summary: 'aggressive',
+      };
+      const preset: TransformPreset = presetMap[transformType] ?? 'medium';
+      const submitResult = await this.submitTransform(tempFilePath, preset);
+
+      // 4. Wait for transform to complete
+      const statusResult = await this.waitForTransform(submitResult.jobId);
+      if (!statusResult.outputPath) {
+        throw new RemarkableCloudError(
+          'Transform completed but returned no output path',
+          'NO_OUTPUT_PATH'
+        );
+      }
+
+      // 5. Save output to destination
+      const finalOutputPath = join(outputDir, `${documentId}-${transformType}.md`);
+      await this.saveTransformOutput(statusResult.outputPath, finalOutputPath);
+
+      return { document, outputPath: finalOutputPath };
+    } finally {
+      // 6. Always clean up the temp file
+      try {
+        await rm(tempFilePath, { force: true });
+      } catch {
+        // Ignore cleanup errors
+      }
+    }
   }
 
   /**
