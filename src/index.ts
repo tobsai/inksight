@@ -22,6 +22,9 @@ export type {
   WaitForTransformOptions,
 } from './cloud/types.js';
 
+// Hybrid Access (Phase 2.3: unified SSH + Cloud client)
+export * from './hybrid/index.js';
+
 // Device Access (Phase 2.1: SSH layer)
 import { RemarkableSSHClient } from './device/ssh-client.js';
 export { RemarkableSSHClient } from './device/ssh-client.js';
@@ -65,6 +68,9 @@ export type {
 // Storage
 export { DocumentCache } from './storage/cache.js';
 export type { CacheOptions, CacheEntry } from './storage/cache.js';
+
+// Hybrid Access Layer (Phase 2.3: SSH + Cloud with offline detection)
+export * from './hybrid/index.js';
 
 /**
  * Library version

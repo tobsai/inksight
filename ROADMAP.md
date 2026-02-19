@@ -54,13 +54,14 @@
 
 **Deliverable**: System that detects new/modified documents in real-time ✅
 
-### Milestone 2.3: Hybrid Mode
-- [ ] Fallback: Try SSH, then Cloud
-- [ ] Preference system
-- [ ] Offline mode detection
-- [ ] Smart sync strategy
+### Milestone 2.3: Hybrid Mode ✅
+- [x] Fallback: Try SSH, then Cloud (auto mode with configurable preferSSH)
+- [x] Preference system (savePreferences / loadFromPreferences)
+- [x] Offline mode detection (OfflineDetector: TCP probe + DNS check)
+- [x] Smart sync strategy (SSH fast path for downloads, Cloud for transforms)
+- [x] 20+ unit tests, all mocked
 
-**Deliverable**: Seamless switching between access methods
+**Deliverable**: Seamless switching between access methods ✅
 
 ## Phase 3: AI Integration (Weeks 5-6)
 
@@ -334,5 +335,5 @@
 ---
 
 **Last Updated**: 2026-02-18  
-**Current Phase**: Phase 2 - In Progress, 2.2 complete  
-**Next Milestone**: 2.3 - Hybrid Mode (SSH + Cloud fallback, offline detection)
+**Current Phase**: Phase 2 Complete — Device Integration done.  
+**Next Milestone**: 3.1 - AI Provider Abstraction
