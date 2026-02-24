@@ -5,7 +5,7 @@ Last updated: 2026-02-22
 InkSight is a CLI tool (and eventually npm package) that transforms reMarkable Paper Pro handwritten notes via AI — offering OCR, diagram cleanup, summarization, smart search, and metadata extraction. It connects to reMarkable via Cloud API or direct SSH.
 
 ## Status
-🟡 **Phases 1–6 Complete** — All core phases done through CLI & UX (Phase 6). Currently entering Phase 7 (Performance Optimization). Phase 8 is public release (npm publish, GitHub release). Not yet publicly released.
+🟢 **Phases 1–7 Complete** — All core phases done through Performance Optimization (Phase 7). Phase 8 is public release (npm publish, GitHub release). Not yet publicly released.
 
 - ✅ Phases 1–6: Cloud API client, SSH device client, file monitoring, AI providers (OpenAI + Anthropic), image rendering, all transformers, SQLite storage, FTS5 search, CLI
 - ⏳ Phase 7: Performance optimization (parallel processing, memory tuning, streaming)
@@ -37,11 +37,17 @@ InkSight is a CLI tool (and eventually npm package) that transforms reMarkable P
 - **Linear project**: `984ea93c-7c1d-4ff6-ad4c-ea532e4d3185`
 
 ## Current Focus / Next Steps
-1. **Phase 7**: Performance optimization — parser tuning, parallel page processing, AI batch requests, streaming responses
-2. **Phase 7**: Comprehensive error handling + recovery mechanisms
-3. **Phase 7**: 80%+ code coverage, integration test suite
-4. **Phase 8**: `npm publish`, GitHub release with release notes, announcement
-5. **Future (Phase 9+)**: Web interface, mobile apps, on-device AI
+1. **Phase 8**: `npm publish`, GitHub release with release notes, announcement
+2. **Phase 8**: Bump `version` in `package.json` to `1.0.0`, verify `bin` entry, write changelog
+3. **Future (Phase 9+)**: Web interface, mobile apps, on-device AI, fine-tuned models
+
+### Phase 7 Completed (2026-02-24)
+- **Parallel page rendering**: `DocumentRenderer.renderAllPages(doc, { concurrency: N })` — uses `ParallelProcessor` (default: 4 concurrent pages)
+- **AI batch requests**: `AnthropicProvider.transformBatch(requests[])` — N pages in one API call, `--- Page N ---` delimiter splitting
+- **Retry + backoff**: `src/ai/retry.ts` `withRetry()` — exponential backoff with jitter, Retry-After header support, retryable on 429/5xx/ECONNRESET
+- **Both providers** (`AnthropicProvider`, `OpenAIProvider`) use `withRetry()` instead of SDK-level retries
+- **Storage error boundaries**: All `InkSightDatabase` public methods wrapped in `StorageError`
+- **642 tests, all passing** (58 new tests added in Phase 7)
 
 ## Key Files & Structure
 ```

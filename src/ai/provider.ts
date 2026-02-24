@@ -59,5 +59,12 @@ export interface AITransformProvider {
 
   transform(request: TransformRequest): Promise<TransformResult>;
 
+  /**
+   * Optional batch transform — send multiple pages in one API call.
+   * Not all providers support this; callers should check before using.
+   * Falls back to sequential `transform()` calls if absent.
+   */
+  transformBatch?(requests: TransformRequest[]): Promise<TransformResult[]>;
+
   estimateCost(inputTokens: number, outputTokens: number): number;
 }

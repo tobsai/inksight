@@ -1,7 +1,8 @@
 /**
- * OpenAI Provider — Phase 3.1
+ * OpenAI Provider — Phase 3.1 / Phase 7 (retry)
  *
  * Sends rendered ink images to GPT-4o (vision-capable) for transformation.
+ * Phase 7 addition: withRetry() wraps every API call with exponential-backoff retry.
  *
  * Pricing (as of 2024):
  *   gpt-4o: $2.50 / 1M input tokens, $10.00 / 1M output tokens
@@ -16,6 +17,8 @@ import type {
   TransformResult,
 } from './provider.js';
 import { SYSTEM_PROMPTS } from './system-prompts.js';
+import { withRetry } from './retry.js';
+import type { RetryOptions } from './retry.js';
 
 const INPUT_COST_PER_TOKEN = 2.5 / 1_000_000;   // $2.50 / 1M
 const OUTPUT_COST_PER_TOKEN = 10.0 / 1_000_000; // $10.00 / 1M
@@ -26,14 +29,20 @@ export class OpenAIProvider implements AITransformProvider {
 
   private client: OpenAI;
   private config: AIProviderConfig;
+  private retryOptions: RetryOptions;
 
   constructor(config: AIProviderConfig) {
     this.config = config;
     this.client = new OpenAI({
       apiKey: config.apiKey,
       timeout: config.timeoutMs ?? 60_000,
-      maxRetries: config.maxRetries ?? 3,
+      maxRetries: 0, // We handle retries ourselves via withRetry()
     });
+    this.retryOptions = {
+      maxAttempts: config.maxRetries != null ? config.maxRetries + 1 : 3,
+      baseDelayMs: 500,
+      maxDelayMs: 30_000,
+    };
   }
 
   isAvailable(): boolean {
@@ -71,12 +80,16 @@ export class OpenAIProvider implements AITransformProvider {
       },
     ];
 
-    const response = await this.client.chat.completions.create({
-      model,
-      messages,
-      max_tokens: request.options?.maxTokens ?? 4096,
-      temperature: request.options?.temperature ?? 0,
-    });
+    const response = await withRetry(
+      () =>
+        this.client.chat.completions.create({
+          model,
+          messages,
+          max_tokens: request.options?.maxTokens ?? 4096,
+          temperature: request.options?.temperature ?? 0,
+        }),
+      this.retryOptions
+    );
 
     const choice = response.choices[0];
     const content = choice.message.content ?? '';
