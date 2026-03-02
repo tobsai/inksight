@@ -1,8 +1,11 @@
 /**
- * Document Renderer — Phase 3.2
+ * Document Renderer — Phase 3.2 / Phase 7 (parallel processing)
  *
  * High-level renderer that combines parser + page renderer + cache
  * to produce PNG Buffers from DownloadedDocument objects.
+ *
+ * Phase 7: renderAllPages() now uses ParallelProcessor for concurrency-limited
+ * parallel rendering (default: 4 concurrent pages).
  */
 
 import type { DownloadedDocument } from '../cloud/types.js';
@@ -10,9 +13,18 @@ import { parseRMFile } from './rm-parser.js';
 import { PageRenderer } from './page-renderer.js';
 import { RenderCache } from './render-cache.js';
 import type { RenderOptions } from './rm-parser.js';
+import { ParallelProcessor } from '../performance/parallel-processor.js';
 
 // Target size for AI-ready images (500 KB default)
 const DEFAULT_TARGET_KB = 500;
+
+/** Default number of pages to render in parallel */
+const DEFAULT_RENDER_CONCURRENCY = 4;
+
+export interface RenderAllOptions {
+  /** Maximum pages rendered in parallel. Default: 4 */
+  concurrency?: number;
+}
 
 export class DocumentRenderer {
   private renderer: PageRenderer;
@@ -58,17 +70,36 @@ export class DocumentRenderer {
   }
 
   /**
-   * Render all pages of a document in parallel (respects cache).
+   * Render all pages of a document with a configurable concurrency limit.
+   *
+   * Uses ParallelProcessor to cap concurrent renders (default: 4),
+   * preventing memory exhaustion on large documents.
+   * Results are returned in page order regardless of completion order.
    */
-  async renderAllPages(document: DownloadedDocument): Promise<Buffer[]> {
+  async renderAllPages(
+    document: DownloadedDocument,
+    options?: RenderAllOptions
+  ): Promise<Buffer[]> {
     const pageCount = document.pages.length;
-    const tasks: Promise<Buffer>[] = [];
+    if (pageCount === 0) return [];
 
-    for (let i = 0; i < pageCount; i++) {
-      tasks.push(this.renderPage(document, i));
-    }
+    const concurrency = options?.concurrency ?? DEFAULT_RENDER_CONCURRENCY;
+    const pageIndices = Array.from({ length: pageCount }, (_, i) => i);
 
-    return Promise.all(tasks);
+    const processor = new ParallelProcessor<number, Buffer>(
+      (pageIndex) => this.renderPage(document, pageIndex),
+      { concurrency }
+    );
+
+    const results = await processor.processAll(pageIndices);
+
+    // Collect results in order; re-throw any page-level errors
+    return results.map((r, i) => {
+      if (r.error) {
+        throw new Error(`Failed to render page ${i}: ${r.error.message}`);
+      }
+      return r.output as Buffer;
+    });
   }
 
   /**

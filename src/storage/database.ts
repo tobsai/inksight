@@ -1,11 +1,15 @@
 /**
- * InkSight Local Database
+ * InkSight Local Database — Phase 5.1 / Phase 7 (error boundaries)
  *
  * SQLite-backed storage for documents, transform results, and settings.
  * Uses better-sqlite3 for synchronous access.
+ *
+ * Phase 7: All public write/read methods are wrapped in StorageError boundaries
+ * so callers receive typed errors rather than raw SQLite exceptions.
  */
 
 import Database from 'better-sqlite3';
+import { StorageError } from '../errors/inksight-error.js';
 
 export interface StoredDocument {
   id: string;
@@ -93,52 +97,80 @@ export class InkSightDatabase {
   // ─── Document operations ────────────────────────────────────────────────────
 
   upsertDocument(doc: StoredDocument): void {
-    this.db.prepare(`
-      INSERT INTO documents (id, name, type, parent_id, created_at, modified_at, last_synced_at, page_count, size_bytes)
-      VALUES (@id, @name, @type, @parentId, @createdAt, @modifiedAt, @lastSyncedAt, @pageCount, @sizeBytes)
-      ON CONFLICT(id) DO UPDATE SET
-        name          = excluded.name,
-        type          = excluded.type,
-        parent_id     = excluded.parent_id,
-        created_at    = excluded.created_at,
-        modified_at   = excluded.modified_at,
-        last_synced_at = excluded.last_synced_at,
-        page_count    = excluded.page_count,
-        size_bytes    = excluded.size_bytes
-    `).run({
-      id: doc.id,
-      name: doc.name,
-      type: doc.type,
-      parentId: doc.parentId ?? null,
-      createdAt: doc.createdAt,
-      modifiedAt: doc.modifiedAt,
-      lastSyncedAt: doc.lastSyncedAt,
-      pageCount: doc.pageCount ?? null,
-      sizeBytes: doc.sizeBytes ?? null,
-    });
+    try {
+      this.db.prepare(`
+        INSERT INTO documents (id, name, type, parent_id, created_at, modified_at, last_synced_at, page_count, size_bytes)
+        VALUES (@id, @name, @type, @parentId, @createdAt, @modifiedAt, @lastSyncedAt, @pageCount, @sizeBytes)
+        ON CONFLICT(id) DO UPDATE SET
+          name          = excluded.name,
+          type          = excluded.type,
+          parent_id     = excluded.parent_id,
+          created_at    = excluded.created_at,
+          modified_at   = excluded.modified_at,
+          last_synced_at = excluded.last_synced_at,
+          page_count    = excluded.page_count,
+          size_bytes    = excluded.size_bytes
+      `).run({
+        id: doc.id,
+        name: doc.name,
+        type: doc.type,
+        parentId: doc.parentId ?? null,
+        createdAt: doc.createdAt,
+        modifiedAt: doc.modifiedAt,
+        lastSyncedAt: doc.lastSyncedAt,
+        pageCount: doc.pageCount ?? null,
+        sizeBytes: doc.sizeBytes ?? null,
+      });
+    } catch (err) {
+      throw new StorageError(
+        `Failed to upsert document ${doc.id}: ${err instanceof Error ? err.message : String(err)}`,
+        { documentId: doc.id }
+      );
+    }
   }
 
   getDocument(id: string): StoredDocument | null {
-    const row = this.db.prepare(
-      'SELECT * FROM documents WHERE id = ?'
-    ).get(id) as any;
-    return row ? this.rowToDocument(row) : null;
+    try {
+      const row = this.db.prepare(
+        'SELECT * FROM documents WHERE id = ?'
+      ).get(id) as any;
+      return row ? this.rowToDocument(row) : null;
+    } catch (err) {
+      throw new StorageError(
+        `Failed to get document ${id}: ${err instanceof Error ? err.message : String(err)}`,
+        { documentId: id }
+      );
+    }
   }
 
   listDocuments(parentId?: string): StoredDocument[] {
-    let rows: any[];
-    if (parentId === undefined) {
-      rows = this.db.prepare('SELECT * FROM documents').all() as any[];
-    } else {
-      rows = this.db.prepare(
-        'SELECT * FROM documents WHERE parent_id = ?'
-      ).all(parentId) as any[];
+    try {
+      let rows: any[];
+      if (parentId === undefined) {
+        rows = this.db.prepare('SELECT * FROM documents').all() as any[];
+      } else {
+        rows = this.db.prepare(
+          'SELECT * FROM documents WHERE parent_id = ?'
+        ).all(parentId) as any[];
+      }
+      return rows.map(r => this.rowToDocument(r));
+    } catch (err) {
+      throw new StorageError(
+        `Failed to list documents: ${err instanceof Error ? err.message : String(err)}`,
+        { parentId }
+      );
     }
-    return rows.map(r => this.rowToDocument(r));
   }
 
   deleteDocument(id: string): void {
-    this.db.prepare('DELETE FROM documents WHERE id = ?').run(id);
+    try {
+      this.db.prepare('DELETE FROM documents WHERE id = ?').run(id);
+    } catch (err) {
+      throw new StorageError(
+        `Failed to delete document ${id}: ${err instanceof Error ? err.message : String(err)}`,
+        { documentId: id }
+      );
+    }
   }
 
   private rowToDocument(row: any): StoredDocument {
@@ -158,29 +190,36 @@ export class InkSightDatabase {
   // ─── Transform result operations ─────────────────────────────────────────────
 
   saveTransformResult(result: StoredTransformResult): void {
-    this.db.prepare(`
-      INSERT INTO transform_results
-        (id, document_id, page_index, transform_type, output, cost_usd, duration_ms, created_at, provider_used)
-      VALUES
-        (@id, @documentId, @pageIndex, @transformType, @output, @costUsd, @durationMs, @createdAt, @providerUsed)
-      ON CONFLICT(document_id, page_index, transform_type) DO UPDATE SET
-        id            = excluded.id,
-        output        = excluded.output,
-        cost_usd      = excluded.cost_usd,
-        duration_ms   = excluded.duration_ms,
-        created_at    = excluded.created_at,
-        provider_used = excluded.provider_used
-    `).run({
-      id: result.id,
-      documentId: result.documentId,
-      pageIndex: result.pageIndex,
-      transformType: result.transformType,
-      output: result.output,
-      costUsd: result.costUsd,
-      durationMs: result.durationMs,
-      createdAt: result.createdAt,
-      providerUsed: result.providerUsed,
-    });
+    try {
+      this.db.prepare(`
+        INSERT INTO transform_results
+          (id, document_id, page_index, transform_type, output, cost_usd, duration_ms, created_at, provider_used)
+        VALUES
+          (@id, @documentId, @pageIndex, @transformType, @output, @costUsd, @durationMs, @createdAt, @providerUsed)
+        ON CONFLICT(document_id, page_index, transform_type) DO UPDATE SET
+          id            = excluded.id,
+          output        = excluded.output,
+          cost_usd      = excluded.cost_usd,
+          duration_ms   = excluded.duration_ms,
+          created_at    = excluded.created_at,
+          provider_used = excluded.provider_used
+      `).run({
+        id: result.id,
+        documentId: result.documentId,
+        pageIndex: result.pageIndex,
+        transformType: result.transformType,
+        output: result.output,
+        costUsd: result.costUsd,
+        durationMs: result.durationMs,
+        createdAt: result.createdAt,
+        providerUsed: result.providerUsed,
+      });
+    } catch (err) {
+      throw new StorageError(
+        `Failed to save transform result for document ${result.documentId}: ${err instanceof Error ? err.message : String(err)}`,
+        { documentId: result.documentId, pageIndex: result.pageIndex, transformType: result.transformType }
+      );
+    }
   }
 
   getTransformResult(
@@ -188,24 +227,45 @@ export class InkSightDatabase {
     pageIndex: number,
     transformType: string,
   ): StoredTransformResult | null {
-    const row = this.db.prepare(`
-      SELECT * FROM transform_results
-      WHERE document_id = ? AND page_index = ? AND transform_type = ?
-    `).get(documentId, pageIndex, transformType) as any;
-    return row ? this.rowToTransformResult(row) : null;
+    try {
+      const row = this.db.prepare(`
+        SELECT * FROM transform_results
+        WHERE document_id = ? AND page_index = ? AND transform_type = ?
+      `).get(documentId, pageIndex, transformType) as any;
+      return row ? this.rowToTransformResult(row) : null;
+    } catch (err) {
+      throw new StorageError(
+        `Failed to get transform result: ${err instanceof Error ? err.message : String(err)}`,
+        { documentId, pageIndex, transformType }
+      );
+    }
   }
 
   listTransformResults(documentId: string): StoredTransformResult[] {
-    const rows = this.db.prepare(
-      'SELECT * FROM transform_results WHERE document_id = ?'
-    ).all(documentId) as any[];
-    return rows.map(r => this.rowToTransformResult(r));
+    try {
+      const rows = this.db.prepare(
+        'SELECT * FROM transform_results WHERE document_id = ?'
+      ).all(documentId) as any[];
+      return rows.map(r => this.rowToTransformResult(r));
+    } catch (err) {
+      throw new StorageError(
+        `Failed to list transform results for document ${documentId}: ${err instanceof Error ? err.message : String(err)}`,
+        { documentId }
+      );
+    }
   }
 
   deleteTransformResults(documentId: string): void {
-    this.db.prepare(
-      'DELETE FROM transform_results WHERE document_id = ?'
-    ).run(documentId);
+    try {
+      this.db.prepare(
+        'DELETE FROM transform_results WHERE document_id = ?'
+      ).run(documentId);
+    } catch (err) {
+      throw new StorageError(
+        `Failed to delete transform results for document ${documentId}: ${err instanceof Error ? err.message : String(err)}`,
+        { documentId }
+      );
+    }
   }
 
   private rowToTransformResult(row: any): StoredTransformResult {
@@ -225,23 +285,44 @@ export class InkSightDatabase {
   // ─── Settings ───────────────────────────────────────────────────────────────
 
   getSetting(key: string): string | null {
-    const row = this.db.prepare(
-      'SELECT value FROM settings WHERE key = ?'
-    ).get(key) as any;
-    return row ? row.value : null;
+    try {
+      const row = this.db.prepare(
+        'SELECT value FROM settings WHERE key = ?'
+      ).get(key) as any;
+      return row ? row.value : null;
+    } catch (err) {
+      throw new StorageError(
+        `Failed to get setting '${key}': ${err instanceof Error ? err.message : String(err)}`,
+        { key }
+      );
+    }
   }
 
   setSetting(key: string, value: string): void {
-    const updatedAt = new Date().toISOString();
-    this.db.prepare(`
-      INSERT INTO settings (key, value, updated_at)
-      VALUES (?, ?, ?)
-      ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at
-    `).run(key, value, updatedAt);
+    try {
+      const updatedAt = new Date().toISOString();
+      this.db.prepare(`
+        INSERT INTO settings (key, value, updated_at)
+        VALUES (?, ?, ?)
+        ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at
+      `).run(key, value, updatedAt);
+    } catch (err) {
+      throw new StorageError(
+        `Failed to set setting '${key}': ${err instanceof Error ? err.message : String(err)}`,
+        { key }
+      );
+    }
   }
 
   deleteSetting(key: string): void {
-    this.db.prepare('DELETE FROM settings WHERE key = ?').run(key);
+    try {
+      this.db.prepare('DELETE FROM settings WHERE key = ?').run(key);
+    } catch (err) {
+      throw new StorageError(
+        `Failed to delete setting '${key}': ${err instanceof Error ? err.message : String(err)}`,
+        { key }
+      );
+    }
   }
 
   // ─── Internal accessor (for SearchIndex) ─────────────────────────────────────
