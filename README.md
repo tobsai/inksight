@@ -1,106 +1,135 @@
 # InkSight
 
-AI-powered ink transformation for reMarkable Paper Pro
+> **Transform your reMarkable handwriting into structured, searchable, AI-enhanced content.**
 
-## Overview
+[![CI](https://github.com/talosgunn/inksight/actions/workflows/ci.yml/badge.svg)](https://github.com/talosgunn/inksight/actions)
+[![npm version](https://img.shields.io/npm/v/inksight.svg)](https://www.npmjs.com/package/inksight)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Node.js >=18](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](https://nodejs.org)
 
-InkSight transforms your reMarkable handwritten notes and drawings through AI, offering capabilities like:
-- **Text Recognition**: Convert handwriting to editable text
-- **Diagram Cleanup**: Clean up and vectorize hand-drawn diagrams
-- **Content Summarization**: Generate summaries of lengthy notes
-- **Smart Search**: Make handwritten content searchable
-- **Intelligent Formatting**: Auto-format notes with proper structure
+---
 
-## Status
+## What is InkSight?
 
-🚧 **Early Development** - Project scaffolding phase
+InkSight is a CLI and Node.js library that connects your **reMarkable Paper Pro** to AI, letting you:
 
-## Prerequisites
+- 📝 **Convert handwriting to text** — accurate HTR with layout preservation
+- 🔍 **Search handwritten notes** — semantic search across your entire notebook library
+- 📊 **Clean up diagrams** — vectorise and export hand-drawn sketches
+- 🗒️ **Summarise long notes** — GPT-4o or Claude distills pages into bullets
+- 🔄 **Sync automatically** — watch for new documents via Cloud API or direct SSH
 
-- Node.js >= 18.0.0
-- TypeScript 5.x
+Works offline. Supports both reMarkable Cloud sync and direct SSH/USB access.
+
+---
+
+## Quick Start
+
+### Install
+
+```bash
+npm install -g inksight
+```
+
+### Configure
+
+```bash
+inksight setup
+```
+
+This wizard will walk you through:
+1. Authenticating with reMarkable Cloud (or entering your device IP for SSH)
+2. Adding your OpenAI or Anthropic API key
+3. Choosing a local storage path for the cache database
+
+### Convert a document
+
+```bash
+# List documents synced from your device
+inksight list
+
+# Convert handwriting to text
+inksight transform --type htr "My Meeting Notes"
+
+# Summarise a document
+inksight transform --type summarise "Research Notes"
+
+# Search across all documents
+inksight search "project timeline"
+```
+
+### Use as a library
+
+```typescript
+import { InkSightClient } from 'inksight';
+
+const client = new InkSightClient({ /* config */ });
+await client.connect();
+
+const docs = await client.listDocuments();
+const result = await client.transform(docs[0], { type: 'htr' });
+console.log(result.text);
+```
+
+---
+
+## Requirements
+
+- Node.js >= 18
 - reMarkable Paper Pro (or reMarkable 2)
-- reMarkable Cloud account OR SSH access to device
+- reMarkable Cloud account **or** SSH access to your device
+- OpenAI or Anthropic API key
 
-## Installation
-
-```bash
-npm install
-```
-
-## Configuration
-
-Copy `.env.example` to `.env` and configure:
-
-```bash
-cp .env.example .env
-```
-
-Fill in your credentials:
-- **reMarkable Cloud API**: Get tokens from [my.remarkable.com](https://my.remarkable.com)
-- **AI Services**: OpenAI or Anthropic API keys
-- **SSH Access** (optional): For direct device access
-
-## Usage
-
-Coming soon! See [ROADMAP.md](./ROADMAP.md) for development plan.
+---
 
 ## Architecture
 
-See [ARCHITECTURE.md](./ARCHITECTURE.md) for detailed system design.
+See [ARCHITECTURE.md](./ARCHITECTURE.md) for the full system design.
+
+```
+inksight/
+├── src/
+│   ├── cloud/          # reMarkable Cloud API client
+│   ├── device/         # SSH/USB direct device access
+│   ├── renderer/       # .rm file parser + PNG renderer
+│   ├── ai/             # Multi-provider AI (OpenAI, Anthropic)
+│   ├── storage/        # SQLite cache & document index
+│   ├── performance/    # Parallel processing & batch AI
+│   └── cli/            # Interactive CLI
+└── tests/
+```
+
+---
 
 ## Development
 
 ```bash
+git clone https://github.com/talosgunn/inksight.git
+cd inksight
+npm install
+
 # Build
 npm run build
 
 # Watch mode
 npm run dev
 
-# Run tests
-npm run test
+# Run tests (642 tests, ~4s)
+npm test
 
-# Lint
+# Lint / format
 npm run lint
-
-# Format
 npm run format
 ```
 
-## Project Structure
-
-```
-inksight/
-├── src/
-│   ├── cloud/          # reMarkable Cloud API client
-│   ├── device/         # Direct device access (SSH/USB)
-│   ├── parser/         # .rm file format parser
-│   ├── ai/             # AI transformation modules
-│   ├── transformers/   # Specific transformation implementations
-│   ├── storage/        # Local cache and storage
-│   └── index.ts        # Main entry point
-├── docs/               # Additional documentation
-├── tests/              # Test files
-└── examples/           # Usage examples
-```
+---
 
 ## Contributing
 
-Contributions welcome! Please read the architecture docs first to understand the system design.
+See [CONTRIBUTING.md](./CONTRIBUTING.md). Issues and PRs welcome.
+
+---
 
 ## License
 
-MIT
-
-## Resources
-
-### reMarkable Documentation
-- [reMarkable Cloud API](https://github.com/splitbrain/ReMarkableAPI/wiki)
-- [File Format Specs](https://github.com/ax3l/lines-are-beautiful)
-- [Awesome reMarkable](https://github.com/reHackable/awesome-reMarkable)
-
-### Related Projects
-- [rmapi](https://github.com/ddvk/rmapi) - Go API for reMarkable Cloud
-- [lines-are-beautiful](https://github.com/ax3l/lines-are-beautiful) - C++ file API
-- [rmrl](https://github.com/rschroll/rmrl) - Python rendering library
+MIT — see [LICENSE](./LICENSE).

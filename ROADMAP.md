@@ -358,3 +358,13 @@
 **Last Updated**: 2026-02-24  
 **Current Phase**: Phase 7 Complete — Performance, batch AI, retry backoff, storage error boundaries. All phases 1–7 complete. 642 tests passing.  
 **Next Milestone**: Phase 8 - Release & Growth (npm publish, GitHub release)
+
+### Phase 8.1 Release Prep — COMPLETE (2026-03-02)
+- ✅ Version bumped to 1.0.0
+- ✅ package.json configured for npm publish (main, types, files, publishConfig)
+- ✅ CHANGELOG.md created covering all 8 phases
+- ✅ README.md updated with badges, elevator pitch, quick-start
+- ✅ CONTRIBUTING.md present
+- ✅ GitHub issue templates (bug + feature request)
+- ✅ All 642 tests passing
+- ⏭️ Next: npm publish + GitHub release tag v1.0.0

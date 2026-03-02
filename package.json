@@ -1,12 +1,22 @@
 {
   "name": "inksight",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "AI-powered ink transformation for reMarkable Paper Pro",
   "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "bin": {
-    "inksight": "./dist/cli/index.js"
+    "inksight": "dist/bin/inksight.js"
   },
   "type": "module",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
@@ -23,12 +33,19 @@
     "handwriting-recognition",
     "ocr"
   ],
-  "author": "",
+  "author": "Tobias Gunn <talos.gunn@gmail.com>",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/talosgunn/inksight.git"
+  },
+  "homepage": "https://github.com/talosgunn/inksight#readme",
+  "bugs": {
+    "url": "https://github.com/talosgunn/inksight/issues"
+  },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.77.0",
     "@types/ssh2": "^1.15.5",
-    "anthropic": "^0.0.0",
     "axios": "^1.6.7",
     "better-sqlite3": "^12.6.2",
     "canvas": "^3.2.1",
@@ -55,8 +72,5 @@
   },
   "engines": {
     "node": ">=18.0.0"
-  },
-  "bin": {
-    "inksight": "dist/bin/inksight.js"
   }
 }
