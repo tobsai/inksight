@@ -23,6 +23,18 @@ InkSight is a CLI tool (and eventually npm package) that transforms reMarkable P
 - **Testing**: Vitest (302+ tests, all mocked, no real API calls in test suite)
 - **Linting/format**: ESLint + Prettier
 
+## Commands
+```bash
+npm install       # Install deps
+npm run build     # Compile TypeScript → dist/
+npm run dev       # tsc --watch (auto-recompile)
+npm test          # Run Vitest test suite (642 tests, all mocked)
+npm run lint      # ESLint
+npm run format    # Prettier
+node dist/cli/index.js  # Run CLI after build
+# Or after `npm link`: inksight <command>
+```
+
 ## Deployment
 - **No server/cloud deployment** — this is a local CLI tool run by the user on their machine
 - **npm package**: Intended for `npm publish` in Phase 8 (not yet published)
