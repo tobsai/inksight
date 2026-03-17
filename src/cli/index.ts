@@ -7,6 +7,7 @@
 
 import { Command } from 'commander';
 import { ConfigManager } from '../config/index.js';
+import { ObsidianWriter } from '../transformers/obsidian-writer.js';
 
 // ─── transform ───────────────────────────────────────────────────────────────
 
@@ -22,26 +23,71 @@ export function transformCommand(): Command {
     .option('--all-pages', 'Transform all pages')
     .option('--provider <openai|anthropic|auto>', 'AI provider override')
     .option('--dry-run', 'Show cost estimate without transforming')
-    .action(async (documentId, options) => {
-      try {
-        const manager = new ConfigManager();
-        const config = manager.loadWithEnvOverrides();
-
-        if (options.dryRun) {
-          console.log(`[dry-run] Would transform document: ${documentId}`);
-          console.log(`[dry-run] Type: ${options.type}, Format: ${options.format}`);
-          console.log('[dry-run] Estimated cost: $0.0000 (stub)');
-          return;
+    .option(
+      '--obsidian-vault <path>',
+      'Write output as a Markdown note into the specified Obsidian vault directory'
+    )
+    .option('--obsidian-title <title>', 'Override the note title written to the vault')
+    .option('--obsidian-tags <tag,...>', 'Comma-separated tags to embed in frontmatter')
+    .action(
+      async (
+        documentId: string,
+        options: {
+          type: string;
+          output?: string;
+          format: string;
+          page?: number;
+          allPages?: boolean;
+          provider?: string;
+          dryRun?: boolean;
+          obsidianVault?: string;
+          obsidianTitle?: string;
+          obsidianTags?: string;
         }
+      ) => {
+        try {
+          const manager = new ConfigManager();
+          const config = manager.loadWithEnvOverrides();
 
-        // Stub: no live credentials
-        console.log(`Not connected — configure with \`inksight config set\``);
-        console.log(`(Current mode: ${config.connection.mode}, document: ${documentId})`);
-      } catch (err) {
-        console.error(`Error: ${(err as Error).message}`);
-        process.exit(1);
+          if (options.dryRun) {
+            console.log(`[dry-run] Would transform document: ${documentId}`);
+            console.log(`[dry-run] Type: ${options.type}, Format: ${options.format}`);
+            if (options.obsidianVault) {
+              console.log(`[dry-run] Would write to Obsidian vault: ${options.obsidianVault}`);
+            }
+            console.log('[dry-run] Estimated cost: $0.0000 (stub)');
+            return;
+          }
+
+          // Stub: no live credentials — show intent for obsidian-vault flag
+          if (options.obsidianVault) {
+            const writer = new ObsidianWriter();
+            const tags = options.obsidianTags
+              ? options.obsidianTags.split(',').map((t: string) => t.trim()).filter(Boolean)
+              : [];
+            const result = await writer.write(
+              `<!-- Stub: transform output for document ${documentId} would appear here -->\n`,
+              {
+                vaultPath: options.obsidianVault,
+                title: options.obsidianTitle,
+                tags,
+              }
+            );
+            console.log(`✅ Note written: ${result.filePath}`);
+            if (result.hadConflict) {
+              console.log('ℹ️  Filename conflict resolved — date suffix appended.');
+            }
+            return;
+          }
+
+          console.log(`Not connected — configure with \`inksight config set\``);
+          console.log(`(Current mode: ${config.connection.mode}, document: ${documentId})`);
+        } catch (err) {
+          console.error(`Error: ${(err as Error).message}`);
+          process.exit(1);
+        }
       }
-    });
+    );
   return cmd;
 }
 

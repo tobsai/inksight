@@ -58,6 +58,48 @@ inksight transform --type summarise "Research Notes"
 inksight search "project timeline"
 ```
 
+### Sync to an Obsidian vault
+
+Write transformed notes directly into an Obsidian vault as Markdown files with
+YAML frontmatter. InkSight stamps each note with `source: remarkable` so you
+can filter by origin inside Obsidian.
+
+```bash
+# Write a note to your vault (title becomes the filename)
+inksight transform "Meeting Notes" --obsidian-vault ~/Documents/MyVault
+
+# Override the title and add tags
+inksight transform "2024-03-15 Call" \
+  --obsidian-vault ~/Documents/MyVault \
+  --obsidian-title "Q1 Strategy Call" \
+  --obsidian-tags "meeting,q1,strategy"
+```
+
+The generated file looks like:
+
+```markdown
+---
+title: Q1 Strategy Call
+date: 2024-03-15
+tags:
+  - meeting
+  - q1
+  - strategy
+source: remarkable
+---
+
+Your transformed note content here…
+```
+
+**Filename rules:**
+- Title is sanitized and used as the filename (`Q1 Strategy Call.md`).
+- If no title is available, the date is used (`2024-03-15.md`).
+- If a file with the same name already exists, a timestamp suffix is appended
+  (`Q1 Strategy Call 2024-03-15T14-30-00.md`).
+
+`--obsidian-vault` can be used alongside `--type`, `--page`, and all other
+`transform` flags.
+
 ### Use as a library
 
 ```typescript

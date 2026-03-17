@@ -15,6 +15,7 @@ import { Command } from 'commander';
 import { ConfigManager } from '../config/config.js';
 import { SetupWizard } from './setup-wizard.js';
 import { OutputFormatter } from './formatter.js';
+import { ObsidianWriter } from '../transformers/obsidian-writer.js';
 
 // Spinner factory — lazily imported so tests can run without a real TTY.
 async function spinner(text: string): Promise<{ stop: (symbol?: string, text?: string) => void }> {
@@ -121,24 +122,61 @@ export class InkSightCLI {
       .description('Transform a document with AI')
       .option('-t, --type <type>', 'Transform type: text|diagram|summary|metadata', 'text')
       .option('-p, --page <n>', 'Page index to transform (0-based)', '0')
-      .action(async (documentId: string, opts: { type: string; page: string }) => {
-        const spin = await spinner(`Transforming ${documentId} (${opts.type})`);
-        try {
-          const config = this.configManager.loadWithEnvOverrides();
-          const result = await this.transformDocument(
-            config,
-            documentId,
-            opts.type as 'text' | 'diagram' | 'summary' | 'metadata',
-            parseInt(opts.page, 10)
-          );
-          spin.stop('✓', 'Transform complete');
-          console.log(this.formatter.formatTransformResult(result));
-        } catch (err) {
-          spin.stop('✗', 'Transform failed');
-          console.error(this.formatter.formatError(err as Error));
-          process.exitCode = 1;
+      .option(
+        '--obsidian-vault <path>',
+        'Write output as a Markdown note into the specified Obsidian vault directory'
+      )
+      .option('--obsidian-title <title>', 'Override the note title written to the vault')
+      .option('--obsidian-tags <tag,...>', 'Comma-separated tags to embed in frontmatter')
+      .action(
+        async (
+          documentId: string,
+          opts: {
+            type: string;
+            page: string;
+            obsidianVault?: string;
+            obsidianTitle?: string;
+            obsidianTags?: string;
+          }
+        ) => {
+          const spin = await spinner(`Transforming ${documentId} (${opts.type})`);
+          try {
+            const config = this.configManager.loadWithEnvOverrides();
+            const result = await this.transformDocument(
+              config,
+              documentId,
+              opts.type as 'text' | 'diagram' | 'summary' | 'metadata',
+              parseInt(opts.page, 10)
+            );
+            spin.stop('✓', 'Transform complete');
+
+            if (opts.obsidianVault) {
+              const tags = opts.obsidianTags
+                ? opts.obsidianTags.split(',').map((t) => t.trim()).filter(Boolean)
+                : [];
+              const writer = new ObsidianWriter();
+              const writeResult = await writer.write(
+                'text' in result ? (result as { text: string }).text : JSON.stringify(result, null, 2),
+                {
+                  vaultPath: opts.obsidianVault,
+                  title: opts.obsidianTitle,
+                  tags,
+                }
+              );
+              console.log(`✅ Note written to vault: ${writeResult.filePath}`);
+              if (writeResult.hadConflict) {
+                console.log('ℹ️  Filename conflict resolved — date suffix appended.');
+              }
+            } else {
+              console.log(this.formatter.formatTransformResult(result));
+            }
+          } catch (err) {
+            spin.stop('✗', 'Transform failed');
+            console.error(this.formatter.formatError(err as Error));
+            process.exitCode = 1;
+          }
         }
-      });
+      );
 
     // ── search ─────────────────────────────────────────────────────────────
     program

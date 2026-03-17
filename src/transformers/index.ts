@@ -38,3 +38,11 @@ export type { TransformerType, RunAllResult } from './transformer-registry.js';
 // Legacy (Phase 3) transformer exports
 export { BaseTransformer } from './base-transformer.js';
 export type { TransformerConfig } from './base-transformer.js';
+
+// Obsidian vault integration
+export { ObsidianWriter } from './obsidian-writer.js';
+export type {
+  ObsidianFrontmatter,
+  ObsidianWriteOptions,
+  ObsidianWriteResult,
+} from './obsidian-writer.js';
