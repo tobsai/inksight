@@ -38,5 +38,3 @@ export type { TransformerType, RunAllResult } from './transformer-registry.js';
 // Legacy (Phase 3) transformer exports
 export { BaseTransformer } from './base-transformer.js';
 export type { TransformerConfig } from './base-transformer.js';
-export { TextRecognitionTransformer } from './text-recognition.js';
-export type { TextRecognitionOptions, RecognizedText } from './text-recognition.js';

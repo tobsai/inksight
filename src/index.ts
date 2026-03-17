@@ -44,7 +44,6 @@ export type {
 export type { VersionInfo, ConflictResolutionResult } from './device/conflict-resolver.js';
 
 // Parser
-export { RMParser } from './parser/rm-parser.js';
 export type {
   RMFile,
   RMPage,

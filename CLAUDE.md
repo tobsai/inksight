@@ -97,6 +97,23 @@ inksight/
 └── package.json
 ```
 
+## ⚠️ Tech Debt & Architectural Notes
+
+### 🟢 Test Suite Is Solid — But All Mocked
+642 tests, all passing — this is genuinely good. The caveat: every test mocks the API, file system, and SQLite. There are zero integration tests that exercise the full pipeline against real (or test-fixture) `.rm` files.
+- This is acceptable for pre-release development, but before Phase 8 (npm publish), consider adding a small set of fixture-based integration tests using real `.rm` sample files to guard against parser regressions.
+
+### 🟡 No E2E / CLI Smoke Tests
+The CLI is the user-facing interface, but there are no tests that invoke the CLI commands end-to-end. A regression in `cli/index.js` argument parsing could silently break the user experience without tripping any test.
+- **Suggested**: Add a small Vitest test that spawns the CLI process and asserts exit codes / stdout for `inksight --help`, `inksight list` (with mock env).
+
+### 🟡 `AnthropicProvider.transformBatch()` Delimiter Parsing Is Brittle
+Batch AI calls use `--- Page N ---` as a delimiter to split multi-page responses. If Claude's output naturally contains that string (e.g. in a quoted heading), parsing will break silently and pages will merge or split incorrectly.
+- **Suggested**: Use a more unique delimiter (UUID-based or XML-tag style: `<page-break id="N"/>`), or validate that the response contains exactly the expected number of delimiters and log a warning on mismatch.
+
+### 🟢 ESM + `better-sqlite3` Native Addon
+`better-sqlite3` is a native Node.js addon. This can cause issues in certain deployment environments (musl libc on Alpine, ARM cross-compilation). Document that `npm rebuild` may be required after environment changes, and that the npm package will need a prebuilt binary or compilation step for end users.
+
 ## Agent Rules
 - **No real API calls in tests** — all tests are fully mocked. Keep it that way.
 - **ESM modules** — `"type": "module"` in package.json. Use `import`/`export`, not `require`/`module.exports`.
