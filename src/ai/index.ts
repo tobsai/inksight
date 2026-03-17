@@ -6,13 +6,14 @@
 
 export { OpenAIProvider } from './openai-provider.js';
 export { AnthropicProvider } from './anthropic-provider.js';
-export { AIProviderFactory, CostTracker } from './provider-factory.js';
-export { PROMPTS } from './prompts.js';
-export type { PromptKey } from './prompts.js';
+export { AIProviderRegistry } from './provider-registry.js';
+export { CostTracker } from './cost-tracker.js';
+export { SYSTEM_PROMPTS } from './system-prompts.js';
 export type {
   AIProvider,
   AIProviderConfig,
-  VisionRequest,
-  VisionResponse,
-  AIProviderClient,
+  AITransformProvider,
+  TransformRequest,
+  TransformResult,
+  TransformType,
 } from './provider.js';

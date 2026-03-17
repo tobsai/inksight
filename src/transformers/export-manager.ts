@@ -40,16 +40,15 @@ export class ExportManager {
 
     switch (format) {
       case 'txt':
-        content = result.plainText;
+        content = result.text;
         break;
 
       case 'md': {
-        let md = result.markdown;
+        let md = result.text;
         if (includeMetadata) {
           const frontmatter = this._buildFrontmatter({
             title: title ?? 'Untitled',
             wordCount: result.wordCount,
-            pageCount: result.pageCount,
             language: result.language,
             confidence: result.confidence,
           });
@@ -84,12 +83,15 @@ export class ExportManager {
    *           - item → <li> (wrapped in <ul>), paragraphs → <p>
    */
   toHTML(result: TextTransformResult): string {
-    const title = result.markdown.split('\n')[0]?.replace(/^#+\s*/, '') ?? 'Document';
+    const title = result.text.split('\n')[0]?.replace(/^#+\s*/, '') ?? 'Document';
 
-    const body = this._markdownToHTML(result.markdown);
+    const body = this._markdownToHTML(result.text);
+
+    // language is a LanguageDetectionResult object; extract code string for HTML lang attr
+    const langCode = (result.language as any)?.code ?? 'en';
 
     return `<!DOCTYPE html>
-<html lang="${result.language || 'en'}">
+<html lang="${langCode}">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">

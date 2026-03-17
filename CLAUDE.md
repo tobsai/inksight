@@ -1,5 +1,5 @@
 # InkSight — Project Source of Truth
-Last updated: 2026-02-22
+Last updated: 2026-03-17
 
 ## What This Is
 InkSight is a CLI tool (and eventually npm package) that transforms reMarkable Paper Pro handwritten notes via AI — offering OCR, diagram cleanup, summarization, smart search, and metadata extraction. It connects to reMarkable via Cloud API or direct SSH.
@@ -52,6 +52,15 @@ node dist/cli/index.js  # Run CLI after build
 1. **Phase 8**: `npm publish`, GitHub release with release notes, announcement
 2. **Phase 8**: Bump `version` in `package.json` to `1.0.0`, verify `bin` entry, write changelog
 3. **Future (Phase 9+)**: Web interface, mobile apps, on-device AI, fine-tuned models
+
+### Build Health (2026-03-17 Pascal pass)
+- Fixed build errors from incomplete Phase 7 refactor:
+  - `src/ai/index.ts`: updated to export `AIProviderRegistry`, `CostTracker`, `SYSTEM_PROMPTS` (old `provider-factory.js`/`prompts.js` files are gone)
+  - `src/renderer/page-renderer.ts`: added local `CanvasLineCap`/`CanvasLineJoin` type aliases (DOM types not available in Node.js canvas package)
+  - `src/transformers/export-manager.ts`: updated to use `result.text` instead of removed `result.plainText`/`result.markdown`/`result.pageCount` fields
+  - `src/transformers/batch-processor.ts`: fixed `transform()` call signature (options are constructor-level, not per-call)
+  - `src/index.ts`: fixed duplicate export conflict between `recognition/index.js` and `ocr/index.js`; removed duplicate `config/index.js` export
+- Build is now clean: `npm run build` passes with 0 errors
 
 ### Phase 7 Completed (2026-02-24)
 - **Parallel page rendering**: `DocumentRenderer.renderAllPages(doc, { concurrency: N })` — uses `ParallelProcessor` (default: 4 concurrent pages)

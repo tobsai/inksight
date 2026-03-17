@@ -80,7 +80,14 @@ export * from './hybrid/index.js';
 export * from './recognition/index.js';
 
 // OCR — Phase 3.3: Text recognition + diagram analysis + document processor
-export * from './ocr/index.js';
+// Note: RecognitionOptions, RecognitionResult, TextRecognizer already exported by recognition/index.js
+export { DiagramAnalyzer, DocumentProcessor } from './ocr/index.js';
+export type {
+  DiagramType,
+  DiagramAnalysisResult,
+  ProcessingMode,
+  ProcessingResult,
+} from './ocr/index.js';
 
 // Config — Phase 6
 export * from './config/index.js';
@@ -90,9 +97,6 @@ export * from './cli/exports.js';
 
 // CLI — Phase 6.1: command-line interface, setup wizard, formatter
 export * from './cli/index.js';
-
-// Config — Phase 6.2: configuration system, presets, export templates
-export * from './config/index.js';
 
 /**
  * Library version

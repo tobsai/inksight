@@ -60,7 +60,8 @@ export class BatchProcessor {
       const batchPromises = batch.map(async (doc) => {
         const documentId = doc.metadata.visibleName;
         try {
-          const result = await this.transformer.transform(doc, transformOptions);
+          // TextTransformer.transform takes (document, pageIndex?) — options are set at construction time
+          const result = await this.transformer.transform(doc);
           successful.push({ documentId, result });
         } catch (err: unknown) {
           const error = err instanceof Error ? err.message : String(err);

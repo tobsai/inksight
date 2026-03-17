@@ -7,6 +7,10 @@
 import { createCanvas, type Canvas, type CanvasRenderingContext2D } from 'canvas';
 import type { RMPage, RMStroke, RMPoint, RenderOptions, RenderResult } from './rm-parser.js';
 
+// canvas npm package doesn't expose CanvasLineCap/CanvasLineJoin DOM types; define locally
+type CanvasLineCap = 'butt' | 'round' | 'square';
+type CanvasLineJoin = 'bevel' | 'miter' | 'round';
+
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const RM_WIDTH  = 1404; // reMarkable page width in .rm units
