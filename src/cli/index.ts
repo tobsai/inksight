@@ -8,6 +8,7 @@
 import { Command } from 'commander';
 import { ConfigManager } from '../config/index.js';
 import { ObsidianWriter } from '../transformers/obsidian-writer.js';
+import { ObsidianWriter as OutputObsidianWriter } from '../output/obsidian-writer.js';
 
 // ─── transform ───────────────────────────────────────────────────────────────
 
@@ -29,12 +30,24 @@ export function transformCommand(): Command {
     )
     .option('--obsidian-title <title>', 'Override the note title written to the vault')
     .option('--obsidian-tags <tag,...>', 'Comma-separated tags to embed in frontmatter')
+    .option(
+      '--output-mode <mode>',
+      'Output mode: "console" (default) or "obsidian" (write to vault)',
+      'console'
+    )
+    .option(
+      '--vault <path>',
+      'Obsidian vault directory (used with --output-mode obsidian)',
+      '~/Documents/ObsidianVault'
+    )
     .action(
       async (
         documentId: string,
         options: {
           type: string;
           output?: string;
+          outputMode: string;
+          vault: string;
           format: string;
           page?: number;
           allPages?: boolean;
@@ -52,14 +65,32 @@ export function transformCommand(): Command {
           if (options.dryRun) {
             console.log(`[dry-run] Would transform document: ${documentId}`);
             console.log(`[dry-run] Type: ${options.type}, Format: ${options.format}`);
-            if (options.obsidianVault) {
+            if (options.outputMode === 'obsidian') {
+              console.log(`[dry-run] Would write to Obsidian vault: ${options.vault}`);
+            } else if (options.obsidianVault) {
               console.log(`[dry-run] Would write to Obsidian vault: ${options.obsidianVault}`);
             }
             console.log('[dry-run] Estimated cost: $0.0000 (stub)');
             return;
           }
 
-          // Stub: no live credentials — show intent for obsidian-vault flag
+          // --output-mode obsidian path: use the new OutputObsidianWriter
+          if (options.outputMode === 'obsidian') {
+            const writer = new OutputObsidianWriter(options.vault);
+            const result = await writer.write({
+              title: documentId,
+              date: new Date().toISOString(),
+              content: `<!-- Stub: transform output for document ${documentId} would appear here -->\n`,
+              tags: [],
+            });
+            console.log(`✓ Written to ${result.filePath}`);
+            if (result.hadConflict) {
+              console.log('ℹ️  Filename conflict resolved — date suffix appended.');
+            }
+            return;
+          }
+
+          // Legacy --obsidian-vault path
           if (options.obsidianVault) {
             const writer = new ObsidianWriter();
             const tags = options.obsidianTags
